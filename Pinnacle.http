@@ -1,0 +1,6 @@
+@Pinnacle_HostAddress = http://localhost:5122
+
+GET {{Pinnacle_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
