@@ -15,7 +15,7 @@ namespace Pinnacle.Models
 
             try
             {
-                var query = (from a in db.Services.Where(a => (entity.Id == 0 || a.Id == entity.Id) && a.HospitalId == jwtData.HospitalId)
+                var query = (from a in db.Services.Where(a => (entity.Id == 0 || a.Id == entity.Id))
                              join b in db.ServiceGroup on a.ServiceGroupId equals b.ServiceGroupId
                              select new
                              {
@@ -42,7 +42,7 @@ namespace Pinnacle.Models
                                  b.ServiceGroupName
                              }
                              ).AsNoTracking();
-                if (!string.IsNullOrEmpty(entity.SearchKey)) query = query.Where(c => c.ServiceName.Contains(entity.SearchKey));
+                if (!string.IsNullOrEmpty(entity.SearchKey)) query = query.Where(c => c.ServiceName.Contains(entity.SearchKey) || c.ServiceCode.Contains(entity.SearchKey));
                 var totalCount = query.Count();
                 var res = PaginatedValues(query, entity);
                 return new Ret { status = true, message = FetchMessage(res, "Service"), data = res, totalCount = totalCount };
@@ -59,7 +59,7 @@ namespace Pinnacle.Models
         {
             try
             {
-                var res = db.Services.Where(a => (Id == 0 || a.Id == Id) && a.HospitalId == jwtData.HospitalId && a.IsActive == "Yes").Select(a => new { value = a.Id, label = a.ServiceCode + " - " + a.ServiceName, a.Charge }).AsNoTracking().ToList();
+                var res = db.Services.Where(a => (Id == 0 || a.Id == Id) && a.IsActive == "Yes").Select(a => new { value = a.Id, label = a.ServiceCode + " - " + a.ServiceName, a.Charge }).AsNoTracking().ToList();
                 return new Ret { status = true, message = FetchMessage(res, "Service"), data = res };
             }
             catch (Exception ex)
@@ -117,6 +117,7 @@ namespace Pinnacle.Models
                         existingService.ServiceGroupId = entity.ServiceGroupId;
                         existingService.UpdatedBy = jwtData.Id;
                         existingService.UpdatedDate = DateTime.Now;
+                        existingService.IsActive = entity.IsActive == "" ? "No" : entity.IsActive;
                         db.Services.Update(existingService);
                         msg = "Service updated successfully!";
                     }
@@ -174,11 +175,12 @@ namespace Pinnacle.Models
                             join serviceGroup in db.ServiceGroup on service.ServiceGroupId equals serviceGroup.ServiceGroupId
                             join docFavService in db.DoctorFavMedicineServices.Where(s => s.Type == 0 && s.DoctorId == entity.Id) on service.Id equals docFavService.ServiceId into docFavServices
                             from _docService in docFavServices.DefaultIfEmpty()
-                            where service.ServiceType == "I" && service.HospitalId == jwtData.HospitalId && service.IsActive == "Yes"
+                            where new[] { "I", "S" }.Contains(service.ServiceType) && service.IsActive == "Yes" && service.Charge > 1
                             select new
                             {
                                 value = service.Id,
-                                label = service.ServiceCode + " - " + service.ServiceName,
+                                label = service.ServiceName,
+                                service.ServiceCode,
                                 service.Charge,
                                 IsFavorite = string.IsNullOrEmpty(_docService.IsFavorite) ? "No" : _docService.IsFavorite,
                                 serviceGroup.ServiceGroupName
@@ -203,8 +205,8 @@ namespace Pinnacle.Models
                           join serviceGroup in db.ServiceGroup on service.ServiceGroupId equals serviceGroup.ServiceGroupId
                           join docFavService in db.DoctorFavMedicineServices.Where(s => s.Type == 0) on service.Id equals docFavService.ServiceId
                           join doc in db.Doctors on docFavService.DoctorId equals doc.DoctorId
-                          where service.ServiceType == "I" && service.HospitalId == jwtData.HospitalId && service.IsActive == "Yes"
-                          && docFavService.IsFavorite == "Yes" && doc.UserId == jwtData.Id
+                          where new[] { "I", "S" }.Contains(service.ServiceType) && service.IsActive == "Yes"
+                          && docFavService.IsFavorite == "Yes" && doc.UserId == jwtData.Id && service.Charge > 1
                           select new
                           {
                               value = service.Id,
@@ -221,6 +223,31 @@ namespace Pinnacle.Models
             {
                 Log.Information(" Error " + DateTime.Now.ToString() + " message " + (ex.Message));
                 return new Ret { status = false, message = FailedSaveMessage() };
+            }
+        }
+        public Ret UpdateStatus(UpdateStatus entity, JwtStatus jwtData)
+        {
+            try
+            {
+                var existingService = db.Services.Where(col => col.Id == entity.Id).FirstOrDefault();
+                if (existingService is not null)
+                {
+                    existingService.IsActive = entity.IsActive;
+                    existingService.UpdatedBy = jwtData.Id;
+                    existingService.UpdatedDate = DateTime.UtcNow;
+                    db.Services.Update(existingService);
+                    db.SaveChanges();
+                    return new Ret { status = true, message = "Status updated successfully" };
+                }
+                else
+                {
+                    return new Ret { status = false, message = "failed to update the status." };
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Information("Service Model => Update Status exception at " + DateTime.UtcNow.ToString() + " message is : " + ex.Message);
+                return new Ret { status = false, message = "Something went wrong" };
             }
         }
     }

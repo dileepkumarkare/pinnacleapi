@@ -4,7 +4,9 @@ using Pinnacle.Helpers.JWT;
 using Pinnacle.Models;
 using Pinnacle.Helpers;
 using Serilog;
-
+using Newtonsoft.Json;
+using Microsoft.AspNetCore.Authentication;
+using IAuthenticationService = Pinnacle.IServices.IAuthenticationService;
 
 
 
@@ -16,46 +18,63 @@ namespace Pinnacle.Controllers
     {
         AuthenticationModel model = new AuthenticationModel();
         MasterModel mastermodel = new MasterModel();
+        JwtStatus jwtStatus = new JwtStatus();
         PinnacleDbContext db = new PinnacleDbContext();
+        private readonly IAuthenticationService _service;
         private readonly JwtSettings jwtSettings;
 
-        public AuthenticationController(JwtSettings jwtSettings)
+        public AuthenticationController(JwtSettings jwtSettings, IAuthenticationService service)
         {
-            this.jwtSettings = jwtSettings; 
+            this.jwtSettings = jwtSettings;
+            _service = service;
         }
 
         [HttpPost]
         [Route("Login")]
-        public IActionResult Login(LoginEntity entity)
+        public async Task<IActionResult> Login(LoginEntity entity)
         {
             try
             {
-                var Token = new TokenEntity();
-                Ret res = model.Login(entity);
-                if (res.status)
+                var res = await _service.Login(entity);
+                if (!res.status || res.data == null)
+                    return Ok(new { status = false, IstokenExpired = false, message = res.message });
+
+                var Token = Helpers.JWT.JwtHelpers.GenTokenkey(new TokenEntity
                 {
+                    UserName = res.data.UserName,
+                    UserId = res.data.UserId,
+                    Id = Convert.ToInt16(res.data.Id),
+                    UserProfileId = Convert.ToInt16(res.data.UserProfileId),
+                    RoleId = Convert.ToInt16(res.data.RoleId),
+                    HospitalId = 0 // update this if needed
+                }, jwtSettings);
 
-                    Token = Helpers.JWT.JwtHelpers.GenTokenkey(new TokenEntity()
+                Response.Cookies.Append("refreshToken", res.RefreshToken, new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.Strict,
+                    Expires = DateTime.UtcNow.AddDays(1)
+                });
+
+                return Ok(new
+                {
+                    status = true,
+                    IstokenExpired = false,
+                    message = res.message,
+                    data = new
                     {
-                       // Email = res.data.Email,                       
-                        UserName = res.data.UserName,
-                        UserId = res.data.UserId,
-                        Id = Convert.ToInt16(res.data.Id)  ,
-                        //OrganizationId = Convert.ToInt16(res.data.OrganizationId),
-                        UserProfileId = Convert.ToInt16(res.data.UserProfileId),
-                        RoleId = Convert.ToInt16(res.data.RoleId),
-                        HospitalId= res.data.HospitalId
-                    }, jwtSettings);
-                }
-
-
-                return Ok(new { status = res.status, IstokenExpired = false, message = res.message, data = res.status ? new { user = res.data, token = Token.Token } : null });
+                        user = res.data,
+                        token = Token.Token
+                    }
+                });
             }
             catch (Exception ex)
             {
-                return Ok(new { status = "Error", message = "Failed to load data. Error: " + ex.InnerException });
+                return Ok(new { status = "Error", message = "Failed to load data. Error: " + ex.Message });
             }
         }
+
         [HttpPost]
         [Route("Encrypt")]
         public IActionResult Encrypt(string Text)
@@ -73,7 +92,12 @@ namespace Pinnacle.Controllers
             {
                 string token = Request.Headers["Authorization"];
                 Ret tokenStatus = mastermodel.CheckToken(token);
-                Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : model.UpdatePassword(entity, tokenStatus.data);
+                if (tokenStatus.data != null)
+                {
+                    jwtStatus = tokenStatus.data;
+                    jwtStatus.HospitalId = Convert.ToInt32(Request.Headers["X-Hospital-Id"].ToString());
+                }
+                Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : model.UpdatePassword(entity, jwtStatus);
                 return Ok(new { status = res.status, IstokenExpired = tokenStatus.IstokenExpired ?? false, message = res.message, data = res.data });
             }
             catch (Exception ex)
@@ -126,6 +150,50 @@ namespace Pinnacle.Controllers
                 return Ok(new { status = "Error", message = "Failed to load data. Error: " + ex.InnerException });
             }
 
+        }
+        [HttpPost]
+        [Route("refresh-token")]
+        public IActionResult Refresh()
+        {
+            try
+            {
+                var refreshToken = Request.Cookies["refreshToken"];
+                if (string.IsNullOrEmpty(refreshToken))
+                    return Unauthorized();
+                Ret res = model.RefreshToken(refreshToken);
+                if (!res.status)
+                    return Unauthorized();
+
+                var newAccessToken = Helpers.JWT.JwtHelpers.GenTokenkey(new TokenEntity
+                {
+                    UserName = res.data.UserName,
+                    UserId = res.data.UserId,
+                    Id = Convert.ToInt16(res.data.Id),
+                    UserProfileId = Convert.ToInt16(res.data.UserProfileId),
+                    RoleId = Convert.ToInt16(res.data.RoleId),
+                    HospitalId = 0 // update this if needed
+                }, jwtSettings);
+
+                var newrefreshToken = Helpers.JWT.JwtHelpers.RefreshToken();
+                var Id = res.data.Id;
+                var ExpiryDateTime = DateTime.Now.AddDays(1);
+                model.UpdateRefreshToken(Id, newrefreshToken, ExpiryDateTime);
+                return Ok(new
+                {
+                    status = true,
+                    IstokenExpired = false,
+                    message = res.message,
+                    data = new
+                    {
+                        user = res.data,
+                        token = newAccessToken
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return Ok();
+            }
         }
     }
 }

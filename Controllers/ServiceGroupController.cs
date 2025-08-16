@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Pinnacle.Entities;
+using Pinnacle.Helpers.JWT;
 using Pinnacle.Models;
 
 namespace Pinnacle.Controllers
@@ -11,6 +12,7 @@ namespace Pinnacle.Controllers
     {
         ServiceGroupModel model = new ServiceGroupModel();
         MasterModel masterModel = new MasterModel();
+        JwtStatus jwtStatus = new JwtStatus();
         [HttpPost]
         [Route("GetAllServiceGroup")]
         public IActionResult GetAllServices(Pagination entity)
@@ -18,7 +20,13 @@ namespace Pinnacle.Controllers
             string token = Request.Headers["Authorization"];
             Ret tokenStatus = masterModel.CheckToken(token);
             Ret accessStatus = masterModel.CheckAceess(true);
-            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? model.GetAllServiceGroup(entity, tokenStatus.data) : accessStatus;
+
+            if (tokenStatus.data != null)
+            {
+                jwtStatus = tokenStatus.data;
+                jwtStatus.HospitalId = Request.Headers["X-Hospital-Id"].FirstOrDefault() != null ? Convert.ToInt32(Request.Headers["X-Hospital-Id"].FirstOrDefault()) : 0;
+            }
+            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? model.GetAllServiceGroup(entity, jwtStatus) : accessStatus;
             return Ok(new
             {
                 status = res.status,
@@ -35,7 +43,13 @@ namespace Pinnacle.Controllers
             string token = Request.Headers["Authorization"];
             Ret tokenStatus = masterModel.CheckToken(token);
             Ret accessStatus = masterModel.CheckAceess(true);
-            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? model.GetAllServiceGroupLabel(obj.Id, tokenStatus.data) : accessStatus;
+
+            if (tokenStatus.data != null)
+            {
+                jwtStatus = tokenStatus.data;
+                jwtStatus.HospitalId = Request.Headers["X-Hospital-Id"].FirstOrDefault() != null ? Convert.ToInt32(Request.Headers["X-Hospital-Id"].FirstOrDefault()) : 0;
+            }
+            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? model.GetAllServiceGroupLabel(obj.Id, jwtStatus) : accessStatus;
             return Ok(new { status = res.status, IstokenExpired = tokenStatus.IstokenExpired ?? false, message = res.message, data = res.data });
         }
 
@@ -46,7 +60,13 @@ namespace Pinnacle.Controllers
             string token = Request.Headers["Authorization"];
             Ret tokenStatus = masterModel.CheckToken(token);
             Ret accessStatus = masterModel.CheckAceess(true);
-            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? model.SaveServiceGroup(entity, tokenStatus.data) : accessStatus;
+
+            if (tokenStatus.data != null)
+            {
+                jwtStatus = tokenStatus.data;
+                jwtStatus.HospitalId = Request.Headers["X-Hospital-Id"].FirstOrDefault() != null ? Convert.ToInt32(Request.Headers["X-Hospital-Id"].FirstOrDefault()) : 0;
+            }
+            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? model.SaveServiceGroup(entity, jwtStatus) : accessStatus;
             return Ok(new { status = res.status, IstokenExpired = tokenStatus.IstokenExpired ?? false, message = res.message, data = res.data });
         }
     }

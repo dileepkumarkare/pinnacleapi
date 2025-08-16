@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Pinnacle.Entities;
+using Pinnacle.Helpers.JWT;
 using Pinnacle.Models;
 
 namespace Pinnacle.Controllers
@@ -11,6 +12,7 @@ namespace Pinnacle.Controllers
     {
         VacutainerModel model = new VacutainerModel();
         MasterModel masterModel = new MasterModel();
+        JwtStatus jwtStatus = new JwtStatus();
         [HttpPost]
         [Route("GetAllVacutainer")]
         public IActionResult GetAllVacutainer(Pagination entity)
@@ -35,7 +37,13 @@ namespace Pinnacle.Controllers
             string token = Request.Headers["Authorization"];
             Ret tokenStatus = masterModel.CheckToken(token);
             Ret accessStatus = masterModel.CheckAceess(true);
-            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? model.GetAllVacutainerLabel(obj.Id, tokenStatus.data) : accessStatus;
+
+            if (tokenStatus.data != null)
+            {
+                jwtStatus = tokenStatus.data;
+                jwtStatus.HospitalId = Request.Headers["X-Hospital-Id"].FirstOrDefault() != null ? Convert.ToInt32(Request.Headers["X-Hospital-Id"].FirstOrDefault()) : 0;
+            }
+            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? model.GetAllVacutainerLabel(obj.Id, jwtStatus) : accessStatus;
             return Ok(new { status = res.status, IstokenExpired = tokenStatus.IstokenExpired ?? false, message = res.message, data = res.data });
         }
 
@@ -46,7 +54,7 @@ namespace Pinnacle.Controllers
             string token = Request.Headers["Authorization"];
             Ret tokenStatus = masterModel.CheckToken(token);
             Ret accessStatus = masterModel.CheckAceess(true);
-            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? model.SaveVacutainer(entity, tokenStatus.data) : accessStatus;
+            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? model.SaveVacutainer(entity, jwtStatus) : accessStatus;
             return Ok(new { status = res.status, IstokenExpired = tokenStatus.IstokenExpired ?? false, message = res.message, data = res.data });
         }
 

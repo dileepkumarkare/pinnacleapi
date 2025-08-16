@@ -39,10 +39,6 @@ namespace Pinnacle.Models
                                  a.RelationType,
                                  a.EmpNo,
                                  a.EmpName,
-                                 a.Designation,
-                                 a.Department,
-                                 a.BasicSalary,
-                                 a.Branch,
                                  a.CreatedBy,
                                  CreatedDate = Convert.ToDateTime(a.CreatedDate).ToString("yyyy-MM-dd"),
                                  a.UpdatedBy,
@@ -95,15 +91,12 @@ namespace Pinnacle.Models
                         _existingReg.RelationType = entity.RelationType;
                         _existingReg.EmpNo = entity.EmpNo;
                         _existingReg.EmpName = entity.EmpName;
-                        _existingReg.Designation = entity.Designation;
-                        _existingReg.Department = entity.Department;
-                        _existingReg.BasicSalary = entity.BasicSalary;
                         db.CorporateRegistration.Update(_existingReg);
                         msg = "Corporate patient details updated successfully!";
                     }
                     else
                     {
-                        return new Ret { status = false, message = "Failed save or update corporate patient details!." };
+                        return new Ret { status = false, message = "This patient is already registered in the selected organization." };
                     }
                 }
 
@@ -149,7 +142,6 @@ namespace Pinnacle.Models
                         LetterFor = entity.letterFor,
                         LetterIssueBy = entity.letterIssueBy,
                         PurposeofRef = entity.purposeofRef,
-                        MaxCredLimit = entity.maxCredLimit,
                         //ReferralFor = entity.referralFor,
                         Remarks = entity.remarks,
                         RefNoValidUpto = entity.refNoValidUpto,
@@ -173,7 +165,6 @@ namespace Pinnacle.Models
                         _existingLetterDetails.PurposeofRef = entity.purposeofRef;
                         _existingLetterDetails.LetterIssueBy = entity.letterIssueBy;
                         // _existingLetterDetails.ReferralFor = entity.referralFor;
-                        _existingLetterDetails.MaxCredLimit = entity.maxCredLimit;
                         _existingLetterDetails.UpdatedBy = jwtData.Id;
                         _existingLetterDetails.UpdatedDate = DateTime.Now;
                         _existingLetterDetails.Remarks = entity.remarks;
@@ -215,7 +206,8 @@ namespace Pinnacle.Models
                 }
                 if (Days.OpDays != null)
                 {
-                    _refNoValidUpto = Days.OpDays == 1 ? DateTime.Now : DateTime.Now.AddDays(Convert.ToInt32(Days.OpDays));
+                    // _refNoValidUpto = Days.OpDays == 1 ? DateTime.Now : DateTime.Now.AddDays(Convert.ToInt32(Days.OpDays));
+                    _refNoValidUpto = DateTime.Now.AddDays(Convert.ToInt32(Days.OpDays) - 1);
                 }
 
                 var query = (from a in db.CorporateRegistration
@@ -236,10 +228,6 @@ namespace Pinnacle.Models
                                  a.RelationType,
                                  a.EmpNo,
                                  a.EmpName,
-                                 a.Designation,
-                                 a.Department,
-                                 a.BasicSalary,
-                                 a.Branch,
                                  a.CreatedBy,
                                  a.CreatedDate,
                                  a.UpdatedBy,
@@ -293,7 +281,6 @@ namespace Pinnacle.Models
                                  letter.LetterIssueBy,
                                  letter.LetterFileName,
                                  //letter.ReferralFor,
-                                 letter.MaxCredLimit,
                                  letter.CreatedBy,
                                  CreatedDate = Convert.ToDateTime(letter.CreatedDate).ToString("yyyy-MM-dd"),
                                  letter.UpdatedBy,
@@ -308,10 +295,6 @@ namespace Pinnacle.Models
                                  a.RelationType,
                                  a.EmpNo,
                                  a.EmpName,
-                                 a.Designation,
-                                 a.Department,
-                                 a.BasicSalary,
-                                 a.Branch,
                                  umrNumber = c.UserName,
                                  PatientName = c.UserFullName,
                                  c.ContactNo,

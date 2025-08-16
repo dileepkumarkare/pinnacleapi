@@ -62,7 +62,6 @@
             this.Detail.KeepTogether = true;
             this.Detail.KeepTogetherWithDetailReports = true;
             this.Detail.Name = "Detail";
-            this.Detail.CanShrink = true;
             // 
             // PConsultationId
             // 
@@ -93,7 +92,6 @@
             this.DetailReport.DataSource = this.sqlDataSource1;
             this.DetailReport.Level = 0;
             this.DetailReport.Name = "DetailReport";
-            this.DetailReport.CanShrink = true;
             // 
             // Detail1
             // 
@@ -102,14 +100,13 @@
             this.Detail1.HeightF = 21.99999F;
             this.Detail1.KeepTogether = true;
             this.Detail1.Name = "Detail1";
-            this.Detail1.CanShrink = true;
             // 
             // xrRichText2
             // 
             this.xrRichText2.CanShrink = true;
             this.xrRichText2.ExpressionBindings.AddRange(new DevExpress.XtraReports.UI.ExpressionBinding[] {
-            new DevExpress.XtraReports.UI.ExpressionBinding("BeforePrint", "Rtf", "IIF(IsNullOrEmpty([Id]),\'\',\'{\\rtf1\\ansi {\\fonttbl\\f0\\fnil\\fcharset0 Verdana;} {\\f" +
-                    "s16 \'+[Id]+\'.\'+[ServiceName]+\'}}\')")});
+            new DevExpress.XtraReports.UI.ExpressionBinding("BeforePrint", "Rtf", "IIF(IsNullOrEmpty([Id]),\'\',\'{\\rtf1\\ansi{\\fonttbl\\f0\\fnil\\fcharset0 Verdana;}{\\fs1" +
+                    "8 \'+[Id]+\'.\'+[ServiceName]+\'}}\')")});
             this.xrRichText2.Font = new DevExpress.Drawing.DXFont("Verdana", 8F);
             this.xrRichText2.LocationFloat = new DevExpress.Utils.PointFloat(0F, 0F);
             this.xrRichText2.Name = "xrRichText2";
@@ -130,7 +127,7 @@
             this.xrRichText1.CanShrink = true;
             this.xrRichText1.ExpressionBindings.AddRange(new DevExpress.XtraReports.UI.ExpressionBinding[] {
             new DevExpress.XtraReports.UI.ExpressionBinding("BeforePrint", "Rtf", "IIF(\n IsNullOrEmpty([Result2].[Id]),\n  \'\',\n  \'{\\rtf1\\ansi{\\fonttbl\\f0\\fnil\\fchars" +
-                    "et0 Verdana;}\\f0\\fs16\\b Investigations\\b0}\'\n)\n")});
+                    "et0 Verdana;}\\f0\\fs18\\b Investigation Orders\\b0}\'\n)\n")});
             this.xrRichText1.Font = new DevExpress.Drawing.DXFont("Verdana", 8F);
             this.xrRichText1.LocationFloat = new DevExpress.Utils.PointFloat(0F, 0F);
             this.xrRichText1.Name = "xrRichText1";

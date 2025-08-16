@@ -35,5 +35,6 @@ namespace Pinnacle.Entities
         public DateTime? CreatedDate { get; set; } = DateTime.Now;
         public int? UpdatedBy { set; get; }
         public DateTime? UpdatedDate { get; set; }
+        public int? HospitalId { get; set; }
     }
 }

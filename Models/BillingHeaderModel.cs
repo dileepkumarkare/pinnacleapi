@@ -32,7 +32,7 @@ namespace Pinnacle.Models
         {
             try
             {
-                var res = db.BillingHeader.Where(a => (Id == 0 || a.BillingHeaderId == Id) && a.HospitalId == jwtData.HospitalId).Select(a => new { value = a.BillingHeaderId, label = a.BillingHeaderName }).AsNoTracking().ToList();
+                var res = db.BillingHeader.Where(a => (Id == 0 || a.BillingHeaderId == Id)).Select(a => new { value = a.BillingHeaderId, label = a.BillingHeaderName }).AsNoTracking().ToList();
                 return new Ret { status = true, message = FetchMessage(res, "Billing header"), data = res };
             }
             catch (Exception ex)

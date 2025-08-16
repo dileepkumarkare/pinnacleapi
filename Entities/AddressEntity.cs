@@ -49,7 +49,7 @@ namespace Pinnacle.Entities
     public class Pagination
     {
         public string? SearchKey { get; set; } = String.Empty;
-        public int PageNumber { get; set; } = 0;
+        public int PageNumber { get; set; } = 1;
         public int PageSize { get; set; } = 0;
         public bool? AllKeys { get; set; } = false;
         public int? Id { get; set; } = 0;

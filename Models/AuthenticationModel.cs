@@ -5,6 +5,7 @@ using Pinnacle.Helpers.JWT;
 using System.Data;
 using DevExpress.Pdf.Native.BouncyCastle.Security.Certificates;
 using System.Linq;
+using DevExpress.Pdf;
 
 
 
@@ -68,9 +69,10 @@ namespace Pinnacle.Models
                                         : new List<object>(),
                             //Doctor = Array.Empty<string>(),
 
-                            Hospital = db.Hospital
-                                .Where(h => user.HospitalId == h.HospitalId)
-                                .Select(h => new { value = h.HospitalId, label = h.HospitalName, h.Logo, h.RegFee })
+                            Hospital = (from hospital in db.Hospital
+                                            //join uhospital in db.UserHospital on hospital.HospitalId equals uhospital.HospitalId
+                                            //where uhospital.UserId == user.Id
+                                        select new { value = hospital.HospitalId, label = hospital.HospitalName, hospital.Logo, hospital.RegFee })
                                 .ToList(),
 
                             Designation = (from desig in db.Designation
@@ -117,9 +119,10 @@ namespace Pinnacle.Models
                                             a.Qualification
                                         }).ToList(),
 
-                            Hospital = db.Hospital
-                                .Where(h => user.HospitalId == h.HospitalId)
-                                .Select(h => new { value = h.HospitalId, label = h.HospitalName, h.Logo, h.RegFee })
+                            Hospital = (from uhospital in db.UserHospital
+                                        join hospital in db.Hospital on uhospital.HospitalId equals hospital.HospitalId
+                                        where uhospital.UserId == user.Id
+                                        select new { value = hospital.HospitalId, label = hospital.HospitalName, hospital.Logo, hospital.RegFee })
                                 .ToList(),
 
                             Designation = (from desig in db.Designation
@@ -257,6 +260,168 @@ namespace Pinnacle.Models
             {
                 Log.Information("GetById  user at " + DateTime.Now.ToString());
                 return new Ret { status = false, message = "Failed to load data. Error: " + ex.InnerException };
+            }
+        }
+        public void UpdateRefreshToken(int Id, string RefreshToken, DateTime ExpiryDateTime)
+        {
+            try
+            {
+                var user = db.Users.Where(user => user.Id == Id).FirstOrDefault();
+                if (user != null)
+                {
+                    user.RefreshToken = RefreshToken;
+                    user.ExpiryDateTime = ExpiryDateTime;
+                    db.Users.Update(user);
+                    db.SaveChanges();
+                }
+            }
+            catch (Exception ex)
+            {
+
+            }
+        }
+        public Ret RefreshToken(string Token)
+        {
+            try
+            {
+                try
+                {
+
+                    var user = db.Users
+                                .FirstOrDefault(_user => _user.RefreshToken == Token);
+                    if (user == null || user.ExpiryDateTime < DateTime.UtcNow)
+                    {
+                        return new Ret { status = false, message = "Token expired" };
+                    }
+
+                    var profileName = db.UserProfile
+                   .Where(p => p.UserProfileId == user.UserProfileId)
+                   .Select(p => p.UserProfileName)
+                   .FirstOrDefault();
+                    if (user is not null && user.Status != "Active" && user.Status != "Pending")
+                    {
+                        return new Ret { status = false, message = "Your account is inactive, Please contact Administrator." };
+                    }
+                    else if (user != null)
+                    {
+                        user.LastLoginDate = DateTime.Now;
+                        db.Users.Update(user);
+                        db.SaveChanges();
+
+                        var hospitalIds = user.HospitalId;
+                        if (user.RoleId != 4)
+                        {
+                            var res = new
+                            {
+                                user.UserId,
+                                user.Status,
+                                user.UserName,
+                                user.ContactNo,
+                                user.Email,
+                                user.HospitalId,
+                                user.RoleId,
+                                user.Id,
+                                user.UserProfileId,
+                                user.LastLoginDate,
+                                user.UserFullName,
+                                profileName,
+                                user.SystemName,
+                                Employee = db.Employee
+                                    .Where(e => e.TempEmpCode == user.UserName)
+                                    .Select(e => new { e.EmpId, Profile = e.EmpProfile })
+                                    .ToList(),
+
+                                Doctor = (new[] { "MATERIAL REQUSET", "NS-USER", "NS-ADMIN" }.Contains(profileName))
+                                          ? db.Doctors
+                                            .Where(g => g.AssistantId == user.Id)
+                                            .Select(g => new { g.DoctorId, g.DoctorName })
+                                            .Cast<object>()
+                                            .ToList()
+                                            : new List<object>(),
+                                //Doctor = Array.Empty<string>(),
+
+                                Hospital = (from hospital in db.Hospital
+                                                //join uhospital in db.UserHospital on hospital.HospitalId equals uhospital.HospitalId
+                                                //where uhospital.UserId == user.Id
+                                            select new { value = hospital.HospitalId, label = hospital.HospitalName, hospital.Logo, hospital.RegFee })
+                                    .ToList(),
+
+                                Designation = (from desig in db.Designation
+                                               join doc in db.Doctors on desig.DesignationId equals doc.DesignationId
+                                               where doc.UserId == user.Id
+                                               select new { desig.DesignationName }).FirstOrDefault(),
+                                Patient = (from a in db.Patient
+                                           where a.UserId == user.Id
+                                           select new { a.PatientId }).FirstOrDefault()
+                            };
+                            return new Ret { status = true, message = "Logged in Successfully.", data = res };
+                        }
+                        else
+                        {
+                            var res = new
+                            {
+                                user.UserId,
+                                user.Status,
+                                user.UserName,
+                                user.ContactNo,
+                                user.Email,
+                                user.HospitalId,
+                                user.RoleId,
+                                user.Id,
+                                user.UserProfileId,
+                                user.LastLoginDate,
+                                profileName,
+                                user.UserFullName,
+                                //Employee = db.Employee
+                                //    .Where(e => e.TempEmpCode == user.UserName)
+                                //    .Select(e => new { e.EmpId, e.EmpProfile })
+                                //    .ToList(),
+
+                                Employee = (from a in db.Doctors
+                                            join b in db.Designation on a.DesignationId equals b.DesignationId
+                                            join d in db.Specializations on a.SpecializationId1 equals d.SpecializationId
+                                            where a.UserId == user.Id
+                                            select new
+                                            {
+                                                EmpId = a.DoctorId,
+                                                b.DesignationName,
+                                                d.SpecializationName,
+                                                Profile = a.DoctorProfile,
+                                                a.Qualification
+                                            }).ToList(),
+
+                                Hospital = (from uhospital in db.UserHospital
+                                            join hospital in db.Hospital on uhospital.HospitalId equals hospital.HospitalId
+                                            where uhospital.UserId == user.Id
+                                            select new { value = hospital.HospitalId, label = hospital.HospitalName, hospital.Logo, hospital.RegFee })
+                                    .ToList(),
+
+                                Designation = (from desig in db.Designation
+                                               join doc in db.Doctors on desig.DesignationId equals doc.DesignationId
+                                               where doc.UserId == user.Id
+                                               select new { desig.DesignationName }).FirstOrDefault(),
+                                Patient = (from a in db.Patient
+                                           where a.UserId == user.Id
+                                           select new { a.PatientId }).ToList()
+                            };
+
+
+                            return new Ret { status = true, message = "Logged in Successfully.", data = res };
+                        }
+                    }
+                    else return new Ret { status = false, message = "Failed to login. You have entered incorrect credentials." };
+
+                }
+                catch (Exception ex)
+                {
+                    Log.Information(" Error " + DateTime.Now.ToString() + " message " + (ex.Message));
+                    return new Ret { status = false, message = "Failed to login." };
+                }
+                return new Ret { };
+            }
+            catch (Exception ex)
+            {
+                return new Ret { status = false, message = "Access Denied." };
             }
         }
 

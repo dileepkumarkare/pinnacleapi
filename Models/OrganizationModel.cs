@@ -204,7 +204,10 @@ namespace Pinnacle.Models
         {
             try
             {
-                var res = db.Organization.Where(a => (Id == 0 || a.OrganizationId == Id) && a.IsActive == "Yes" && a.HospitalId == jwtData.HospitalId).Select(a => new { value = a.OrganizationId, label = a.OrganizationName + " - " + a.OrganizationCode, isActive = a.IsActive ?? "No" }).AsNoTracking().ToList();
+                var res = db.Organization.Where(a => (Id == 0 || a.OrganizationId == Id) && a.IsActive == "Yes")
+                                         .Select(a => new { value = a.OrganizationId, label = a.OrganizationName + " - " + a.OrganizationCode, isActive = a.IsActive ?? "No", a.Pharmacy, a.CorpConsultation })
+                                         .AsNoTracking()
+                                         .ToList();
                 return new Ret { status = true, message = FetchMessage(res, "Organization"), data = res };
             }
             catch (Exception ex)

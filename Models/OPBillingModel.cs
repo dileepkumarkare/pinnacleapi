@@ -29,16 +29,17 @@ namespace Pinnacle.Models
         {
             try
             {
-                string NewOPBillNo = string.Concat(jwtData.HospitalId == 1 ? "BOP" : "BOP", DateTime.Now.ToString("yyMMdd"), "001");
+                string prefix = jwtData.HospitalId == 1 ? "BOP" : "BOS";
+                string NewOPBillNo = string.Concat(prefix, DateTime.Now.ToString("yyMMdd"), "001");
                 string NewOSPNo = $"OSP{DateTime.UtcNow.ToString("yyMMdd")}001";
                 string NewBRecNo = "BREC000001";
-                string condition = string.Concat(jwtData.HospitalId == 1 ? "BOP" : "BOP", DateTime.Now.ToString("yyMMdd"));
+                string condition = string.Concat(prefix, DateTime.Now.ToString("yyMMdd"));
                 var _lastOPBillNo = db.OPBillReceipt.Where(bill => bill.OpBillRecNo.StartsWith(condition)).Select(bill => bill.OpBillRecNo).OrderByDescending(bill => bill).FirstOrDefault();
                 var _lastOSPNo = db.OSPatient.Where(osp => osp.OspNo.StartsWith("OSP")).Select(osp => osp.OspNo).OrderByDescending(osp => osp).FirstOrDefault();
                 if (!string.IsNullOrEmpty(_lastOPBillNo))
                 {
                     string _lastNumber = _lastOPBillNo.Substring(3);
-                    NewOPBillNo = int.TryParse(_lastNumber, out int lastNumber) && _lastOPBillNo.Substring(3, 6) == DateTime.UtcNow.ToString("yyMMdd") ? $"BOP{(lastNumber + 1):D3}" : NewOPBillNo;
+                    NewOPBillNo = int.TryParse(_lastNumber, out int lastNumber) && _lastOPBillNo.Substring(3, 6) == DateTime.UtcNow.ToString("yyMMdd") ? $"{prefix}{(lastNumber + 1):D3}" : NewOPBillNo;
                 }
                 if (!string.IsNullOrEmpty(_lastOSPNo))
                 {
@@ -245,7 +246,7 @@ namespace Pinnacle.Models
             }
 
         }
-        public Ret GetServices(OPBillingFilter entity)
+        public Ret GetServices(OPBillingFilter entity, JwtStatus jwtData)
         {
             try
             {
@@ -254,8 +255,8 @@ namespace Pinnacle.Models
                     var _services = (from service in db.Services
                                      join tariffService in db.TariffServiceMapping on service.Id equals tariffService.ServiceId
                                      where (service.ServiceGroupId == entity.ServiceGroupId || entity.ServiceGroupId == 0) && tariffService.TariffId == 1 && service.IsActive == "Yes" &&
-                                     new[] { "BF", "BV", "OP" }.Contains(service.ApplicableFor)
-                                     select new { value = tariffService.Id, label = service.ServiceName, service.ServiceCode, Rate = service.Charge }).AsNoTracking();
+                                                                          new[] { "BF", "BV", "OP" }.Contains(service.ApplicableFor) && tariffService.HospitalId == jwtData.HospitalId
+                                     select new { value = service.Id, label = service.ServiceName, service.ServiceCode, Rate = service.Charge }).AsNoTracking();
                     return new Ret { status = true, data = _services, message = "Services loaded successfully!" };
                 }
                 else
@@ -272,7 +273,7 @@ namespace Pinnacle.Models
                 Log.Information("OPBilling Model => get OP services error at " + nameof(DateTime.Now) + " error message" + ex.Message);
             }
         }
-        public Ret GetServiceCharge(OPBillingFilter entity)
+        public Ret GetServiceCharge(OPBillingFilter entity, JwtStatus jwtData)
         {
             try
             {
@@ -308,7 +309,7 @@ namespace Pinnacle.Models
                 {
                     var _serviceAmount = (from a in db.TariffServiceMapping
                                           join b in db.Services on a.ServiceId equals b.Id
-                                          where a.ServiceId == entity.Id && a.TariffId == 1
+                                          where a.ServiceId == entity.Id && a.TariffId == 1 && a.HospitalId == jwtData.HospitalId
                                           select new { a.Charge, b.ServiceName, b.ServiceCode, a.Id }).AsNoTracking().FirstOrDefault();
                     if (_serviceAmount is not null)
                     {
@@ -855,8 +856,6 @@ namespace Pinnacle.Models
                                         _org.OpEmpPercentage,
                                         _cop.EmpName,
                                         _cop.EmpNo,
-                                        _cop.Department,
-                                        _cop.Designation,
                                         _cop.MedicalCardNo,
                                         _col.RefLetterNo,
                                         _col.LetterFileName
@@ -871,8 +870,6 @@ namespace Pinnacle.Models
                                              OpBillRecNo = opCon.ConsultationNo,
                                              _patientData.EmpNo,
                                              _patientData.EmpName,
-                                             _patientData.Department,
-                                             _patientData.Designation,
                                              BillName = "Consultation",
                                              opCon.ConsultationId
 
@@ -898,8 +895,6 @@ namespace Pinnacle.Models
                                            DoctorName = doctor.DoctorName,
                                            _patientData.EmpNo,
                                            _patientData.EmpName,
-                                           _patientData.Department,
-                                           _patientData.Designation,
                                            Services = (from a in db.OPServiceBooking
                                                        join s in db.TariffServiceMapping on a.ServiceId equals s.Id
                                                        where a.OpBillId == _billing.OPBillId

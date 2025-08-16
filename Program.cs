@@ -8,7 +8,8 @@ using Microsoft.EntityFrameworkCore;
 using Pinnacle.Entities;
 using Pinnacle.IServices;
 using Pinnacle.Services;
-
+using Pinnacle.Models;
+using IAuthenticationService = Pinnacle.IServices.IAuthenticationService;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -24,7 +25,11 @@ builder.Services.AddControllers(config =>
     config.Filters.Add<AuditLogFilter>();
 });
 builder.Services.AddScoped<IWhatsappService, WhatsappService>();
+builder.Services.AddScoped<IItemMasterService, ItemMasterService>();
+builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 builder.Services.AddScoped<AuditLogFilter>();
+
+
 builder.Services.AddSwaggerGen(options =>
 {
     options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
@@ -66,7 +71,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 app.UseCors(builder => builder
-.WithOrigins(new string[] { "http://localhost:3000", "http://localhost:3001", "http://pinnacletest.bluhealthapp.com", "https://pinnacletest.bluhealthapp.com" })
+//.WithOrigins(new string[] { "http://localhost:3000", "http://localhost:3001", "http://pinnacle.bluhealthapp.com", "https://pinnacle.bluhealthapp.com", "http://pinnacletest.bluhealthapp.com", "https://pinnacletest.bluhealthapp.com" })
+.WithOrigins(new string[] { "http://localhost:3000", "http://localhost:3001", "http://emr.pinnaclehospitals.com", "https://emr.pinnaclehospitals.com" })
 .AllowAnyHeader()
 .AllowAnyMethod()
 .AllowCredentials()

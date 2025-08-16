@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Pinnacle.Entities;
+using Pinnacle.Helpers.JWT;
 using Pinnacle.IServices;
 using Pinnacle.Models;
 
@@ -12,6 +13,7 @@ namespace Pinnacle.Controllers
     {
         MasterModel masterModel = new MasterModel();
         private WhatsappModel _whatsappmodel;
+        JwtStatus jwtStatus = new JwtStatus();
         // PatientModel Model = new PatientModel();
         private readonly PatientModel Model;
         public PatientController(IWhatsappService whatsappService)
@@ -28,7 +30,12 @@ namespace Pinnacle.Controllers
             {
                 string token = Request.Headers["Authorization"];
                 Ret tokenStatus = masterModel.CheckToken(token);
-                Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : Model.SavePatientBasicDetails(entity, tokenStatus.data);
+                if (tokenStatus.data != null)
+                {
+                    jwtStatus = tokenStatus.data;
+                    jwtStatus.HospitalId = Request.Headers["X-Hospital-Id"].FirstOrDefault() != null ? Convert.ToInt32(Request.Headers["X-Hospital-Id"].FirstOrDefault()) : 0;
+                }
+                Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : Model.SavePatientBasicDetails(entity, jwtStatus);
                 return Ok(new { status = res.status, IstokenExpired = tokenStatus.IstokenExpired ?? false, message = res.message, data = res.data });
             }
             catch (Exception ex)
@@ -43,7 +50,12 @@ namespace Pinnacle.Controllers
             string token = Request.Headers["Authorization"];
             Ret tokenStatus = masterModel.CheckToken(token);
             Ret accessStatus = masterModel.CheckAceess(true);
-            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? Model.GetAllPatient(entity, tokenStatus.data) : accessStatus;
+            if (tokenStatus.data != null)
+            {
+                jwtStatus = tokenStatus.data;
+                jwtStatus.HospitalId = Request.Headers["X-Hospital-Id"].FirstOrDefault() != null ? Convert.ToInt32(Request.Headers["X-Hospital-Id"].FirstOrDefault()) : 0;
+            }
+            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? Model.GetAllPatient(entity, jwtStatus) : accessStatus;
             return Ok(new
             {
                 status = res.status,
@@ -87,7 +99,12 @@ namespace Pinnacle.Controllers
             string token = Request.Headers["Authorization"];
             Ret tokenStatus = masterModel.CheckToken(token);
             Ret accessStatus = masterModel.CheckAceess(true);
-            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? Model.PatientUMRGetByNumber(umr) : accessStatus;
+            if (tokenStatus.data != null)
+            {
+                jwtStatus = tokenStatus.data;
+                jwtStatus.HospitalId = Request.Headers["X-Hospital-Id"].FirstOrDefault() != null ? Convert.ToInt32(Request.Headers["X-Hospital-Id"].FirstOrDefault()) : 0;
+            }
+            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? Model.PatientUMRGetByNumber(umr, jwtStatus) : accessStatus;
             return Ok(new { status = res.status, IstokenExpired = tokenStatus.IstokenExpired ?? false, message = res.message, data = res.data });
         }
         [HttpPost]
@@ -144,7 +161,12 @@ namespace Pinnacle.Controllers
             string token = Request.Headers["Authorization"];
             Ret tokenStatus = masterModel.CheckToken(token);
             Ret accessStatus = masterModel.CheckAceess(true);
-            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? Model.GetPatientUmrNumbersList(tokenStatus.data) : accessStatus;
+            if (tokenStatus.data != null)
+            {
+                jwtStatus = tokenStatus.data;
+                jwtStatus.HospitalId = Request.Headers["X-Hospital-Id"].FirstOrDefault() != null ? Convert.ToInt32(Request.Headers["X-Hospital-Id"].FirstOrDefault()) : 0;
+            }
+            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? Model.GetPatientUmrNumbersList(jwtStatus) : accessStatus;
             return Ok(new { status = res.status, IstokenExpired = tokenStatus.IstokenExpired ?? false, message = res.message, data = res.data });
         }
         [HttpPost]
@@ -170,19 +192,29 @@ namespace Pinnacle.Controllers
             string token = Request.Headers["Authorization"];
             Ret tokenStatus = masterModel.CheckToken(token);
             Ret accessStatus = masterModel.CheckAceess(true);
-            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? Model.GetOpConsultations(entity, tokenStatus.data) : accessStatus;
+            if (tokenStatus.data != null)
+            {
+                jwtStatus = tokenStatus.data;
+                jwtStatus.HospitalId = Request.Headers["X-Hospital-Id"].FirstOrDefault() != null ? Convert.ToInt32(Request.Headers["X-Hospital-Id"].FirstOrDefault()) : 0;
+            }
+            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? Model.GetOpConsultations(entity, jwtStatus) : accessStatus;
             return Ok(new { status = res.status, IstokenExpired = tokenStatus.IstokenExpired ?? false, message = res.message, data = res.data });
         }
 
         [HttpPost]
         [Route("SendWhatsappMessage")]
-        public IActionResult SendWhatsappMessage(string PhoneNumber, string PatientName, string UHID, string Nationality, string AreaCode)
+        public async Task<IActionResult> SendWhatsappMessage(string PhoneNumber, string PatientName, string UHID, string Nationality, string AreaCode)
         {
             try
             {
                 string token = Request.Headers["Authorization"];
                 Ret tokenStatus = masterModel.CheckToken(token);
-                Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : _whatsappmodel.SendUHIDNumberToWhatsapp(PhoneNumber, PatientName, UHID, Nationality, AreaCode, tokenStatus.data);
+                if (tokenStatus.data != null)
+                {
+                    jwtStatus = tokenStatus.data;
+                    jwtStatus.HospitalId = Request.Headers["X-Hospital-Id"].FirstOrDefault() != null ? Convert.ToInt32(Request.Headers["X-Hospital-Id"].FirstOrDefault()) : 0;
+                }
+                Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : await _whatsappmodel.SendUHIDNumberToWhatsapp(PhoneNumber, PatientName, UHID, Nationality, AreaCode, jwtStatus);
                 return Ok(new { status = res.status, IstokenExpired = tokenStatus.IstokenExpired ?? false, message = res.message, data = res.data });
             }
             catch (Exception ex)

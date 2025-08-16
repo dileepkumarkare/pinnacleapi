@@ -1,7 +1,11 @@
-﻿using Pinnacle.Entities;
+﻿using DevExpress.DocumentServices.ServiceModel.Client;
+using DevExpress.ReportServer.ServiceModel.Client;
+using Pinnacle.Entities;
 using Pinnacle.Helpers;
 using Pinnacle.Helpers.JWT;
+using Pinnacle.IServices;
 using Pinnacle.Reports;
+using Serilog;
 using System.Data;
 using System.Data.SqlClient;
 using System.IO;
@@ -11,6 +15,7 @@ namespace Pinnacle.Models
     public class ReportModel : MasterModel
     {
         PinnacleDbContext db = new PinnacleDbContext();
+
         public Ret GenerateOpConsultationReceipt(int ConsultationId)
         {
             try
@@ -36,11 +41,13 @@ namespace Pinnacle.Models
 
             }
         }
-        public Ret GeneratePrescription(int ConsultationId)
+        public Ret GeneratePrescription(int ConsultationId, JwtStatus JwtData)
         {
             try
             {
-                Reports.DoctorPrescription dp = new Reports.DoctorPrescription();
+                dynamic dp;
+                //dp = new[] { "DM0209", "DM0065", "DM0353", "DM0326", "DM0154" }.Contains(JwtData.UserName) ? new Reports.DoctorPrescriptionCardio() : new Reports.DoctorPrescription();
+                dp = JwtData.HospitalId.ToString() == "2" ? new Reports.DoctorPrescriptionCardio() : new Reports.DoctorPrescription();
                 string base64String = string.Empty;
                 string rootFolder = Path.GetFullPath("Uploads/Reports/Prescription_" + ConsultationId + ".pdf");
                 if (File.Exists(rootFolder))
@@ -65,6 +72,7 @@ namespace Pinnacle.Models
             }
             catch (Exception ex)
             {
+                Log.Information("Report Modeils=> Error at " + DateTime.UtcNow.ToString() + " erorr message " + ex.Message);
                 return new Ret { status = false, message = "Something went wrong" };
 
             }

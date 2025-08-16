@@ -211,6 +211,23 @@ namespace Pinnacle.Helpers
             JsonArray finalArray = JsonArray.Parse(json);
             return finalArray;
         }
+        public static dynamic GetSQLJsonObject(DataSet ds)
+        {
+            dynamic jObject = JsonConvert.DeserializeObject(ds.Tables[0].Rows[0][0].ToString(), typeof(ExpandoObject));
+
+            var settings = new JsonSerializerSettings()
+            {
+                ContractResolver = new CamelCasePropertyNamesContractResolver(),
+                ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+                //PreserveReferencesHandling = PreserveReferencesHandling.Objects
+            };
+
+            var serialized = JsonConvert.SerializeObject(jObject, settings);
+            JsonArray serializedArray = JsonArray.Parse(serialized);
+
+            return serializedArray;
+
+        }
         public static dynamic GetJsonArray(DataSet ds)
         {
             var finalArray = new JsonArray();
@@ -238,7 +255,7 @@ namespace Pinnacle.Helpers
             return dataObject;
         }
 
-        public static string TranslateText(string input,string traslateTo)
+        public static string TranslateText(string input, string traslateTo)
         {
             #region Issue with Entire Text Translation
 

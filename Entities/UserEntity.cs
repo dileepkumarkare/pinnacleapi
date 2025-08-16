@@ -33,5 +33,7 @@ namespace Pinnacle.Entities
         public DateTime? LastLoginDate { get; set; }
         public DateTime? PWDChangeDate { get; set; }
         public string? SystemName { get; set; }
+        public string? RefreshToken { get; set; }
+        public DateTime? ExpiryDateTime { get; set; }
     }
 }

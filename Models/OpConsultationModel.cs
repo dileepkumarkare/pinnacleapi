@@ -26,7 +26,7 @@ namespace Pinnacle.Models
                 {
 
                     var reservedTokenCount = db.Doctors.Where(h => h.DoctorId == entity.DoctorId).Select(h => h.ReservedTokens).FirstOrDefault();
-                    var lastToken = db.OpConsultation.Where(op => op.ConsultationDate == op.ConsultationDate && op.DoctorId == entity.DoctorId).Select(op => op.TokenNo).OrderByDescending(op => op).FirstOrDefault();
+                    var lastToken = db.OpConsultation.AsEnumerable().Where(op => Convert.ToDateTime(op.ConsultationDate).Date == Convert.ToDateTime(op.ConsultationDate).Date && op.DoctorId == entity.DoctorId).Select(op => op.TokenNo).OrderByDescending(op => op).FirstOrDefault();
                     var _opConsultation = new OpConsultationEntity()
                     {
                         TokenNo = lastToken != null && lastToken > 0 ? Convert.ToInt32(lastToken) + 1 : reservedTokenCount != null ? Convert.ToInt32(reservedTokenCount) + 1 : 1,
@@ -200,7 +200,7 @@ namespace Pinnacle.Models
                                ConsReferredBy = a.ReferredBy ?? "",
                                CreatedBy = a.CreatedBy ?? 0,
                                a.Status,
-                               ConstultationDate = Convert.ToDateTime(a.ConsultationDate).ToString("yyyy-MM-dd hh:mm:tt") ?? DateTime.MinValue.ToString("dd-MM-yyyy"),
+                               ConsultationDate = Convert.ToDateTime(a.ConsultationDate).ToString("yyyy-MM-dd hh:mm:tt") ?? DateTime.MinValue.ToString("dd-MM-yyyy"),
                                CreatedDate = Convert.ToDateTime(a.CreatedDate).ToString("dd-MM-yyyy"),
                                UpdateBy = a.UpdatedBy ?? 0,
                                UpdateDate = Convert.ToDateTime(a.UpdatedDate).ToString("yyyy-MM-dd") ?? DateTime.MinValue.ToString("dd-MM-yyyy"),
@@ -249,8 +249,10 @@ namespace Pinnacle.Models
                                AudApproveRemarks = a.AudApproveRemarks ?? "",
                                ReferenceName = refBy.ReferenceName ?? "",
                                AudApprove = a.IsAudApprove ?? "No",
-                               Investigation = (w.Investigations != null && w.Investigations == "[]" || w.Investigations == null) ? "No" : "Yes",
-                               Medication = (w.Medication != null && w.Medication == "[]" || w.Medication == null) ? "No" : "Yes"
+                               Investigation = (w.Investigations != null && w.Investigations == "[]" || w.Investigations == null || string.IsNullOrEmpty(w.Investigations)) ? "No" : "Yes",
+                               Medication = (w.Medication != null && w.Medication == "[]" || w.Medication == null || string.IsNullOrEmpty(w.Investigations)) ? "No" : "Yes",
+                               h.CorpConsultation,
+                               h.Pharmacy
                            }).AsNoTracking();
                 return new Ret { status = true, data = res, message = "Op consultation loaded successfully?" };
             }
@@ -293,7 +295,7 @@ namespace Pinnacle.Models
                                  a.ReferredBy,
                                  a.CreatedBy,
                                  a.Status,
-                                 ConstultationDate = Convert.ToDateTime(a.ConsultationDate).ToString("yyyy-MM-dd hh:mm:tt") ?? DateTime.MinValue.ToString("dd-MM-yyyy"),
+                                 ConsultationDate = Convert.ToDateTime(a.ConsultationDate).ToString("yyyy-MM-dd hh:mm:tt") ?? DateTime.MinValue.ToString("dd-MM-yyyy"),
                                  a.CreatedDate,
                                  a.UpdatedBy,
                                  a.UpdatedDate,
@@ -313,8 +315,15 @@ namespace Pinnacle.Models
                                  AudApproveRemarks = a.AudApproveRemarks ?? "",
                                  ReferenceName = refBy.ReferenceName ?? "",
                                  AudApprove = a.IsAudApprove ?? "No",
-                                 Investigation = (k.Investigations != null && k.Investigations == "[]" || k.Investigations == null) ? "No" : "Yes",
-                                 Medication = (k.Medication != null && k.Medication == "[]" || k.Medication == null) ? "No" : "Yes"
+                                 Investigation = ((k.Investigations != null && k.Investigations == "[]") || k.Investigations == null || string.IsNullOrEmpty(k.Investigations)) ? "No" : "Yes",
+                                 Medication = ((k.Medication != null && k.Medication == "[]") || k.Medication == null || string.IsNullOrEmpty(k.Medication)) ? "No" : "Yes",
+                                 ChiefComplaint = k.ChiefComplaint != null && !string.IsNullOrEmpty(k.ChiefComplaint) ? "Yes" : "No",
+                                 PastHistory = k.PastHistory != null && !string.IsNullOrEmpty(k.PastHistory) ? "Yes" : "No",
+                                 ProvisionalDiagnosis = k.ProvisionalDiagnosis != null && !string.IsNullOrEmpty(k.ProvisionalDiagnosis) ? "Yes" : "No",
+                                 Allergies = k.Allergies != null && !string.IsNullOrEmpty(k.Allergies) ? "Yes" : "No",
+                                 HistoryofPresentIllness = k.HistoryofPresentIllness != null && !string.IsNullOrEmpty(k.HistoryofPresentIllness) ? "Yes" : "No",
+                                 PhysicalExamination = k.PhysicalExamination != null && !string.IsNullOrEmpty(k.PhysicalExamination) ? "Yes" : "No",
+                                 ClinicalNotes = k.ClinicalNotes != null && !string.IsNullOrEmpty(k.ClinicalNotes) ? "Yes" : "No"
 
                              }).AsNoTracking();
                 if (!string.IsNullOrEmpty(entity.SearchKey)) query = query.Where(c => c.PatientName.Contains(entity.SearchKey) || c.umrNumber.Contains(entity.SearchKey));

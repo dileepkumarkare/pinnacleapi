@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using Pinnacle.Entities;
+using Pinnacle.Helpers.JWT;
 using Pinnacle.Models;
 
 namespace Pinnacle.Controllers
@@ -13,6 +14,7 @@ namespace Pinnacle.Controllers
     {
         Pinnacle.Models.ReportModel reportModel = new Pinnacle.Models.ReportModel();
         MasterModel masterModel = new MasterModel();
+        JwtStatus jwtStatus = new JwtStatus();
         [HttpPost]
         [Route("GenerateOpConsultationReceipt")]
         public IActionResult GenerateOpConsultationReceipt(OnlyId entity)
@@ -37,7 +39,12 @@ namespace Pinnacle.Controllers
             string token = Request.Headers["Authorization"];
             Ret tokenStatus = masterModel.CheckToken(token);
             Ret accessStatus = masterModel.CheckAceess(true);
-            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? reportModel.GeneratePrescription(entity.Id) : accessStatus;
+            if (tokenStatus.data != null)
+            {
+                jwtStatus = tokenStatus.data;
+                jwtStatus.HospitalId = Request.Headers["X-Hospital-Id"].FirstOrDefault() != null ? Convert.ToInt32(Request.Headers["X-Hospital-Id"].FirstOrDefault()) : 0;
+            }
+            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? reportModel.GeneratePrescription(entity.Id, jwtStatus) : accessStatus;
             return Ok(new
             {
                 status = res.status,
@@ -54,7 +61,13 @@ namespace Pinnacle.Controllers
             string token = Request.Headers["Authorization"];
             Ret tokenStatus = masterModel.CheckToken(token);
             Ret accessStatus = masterModel.CheckAceess(true);
-            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? reportModel.GenerateOpConsultationBillingReport(entity,tokenStatus.data) : accessStatus;
+
+            if (tokenStatus.data != null)
+            {
+                jwtStatus = tokenStatus.data;
+                jwtStatus.HospitalId = Request.Headers["X-Hospital-Id"].FirstOrDefault() != null ? Convert.ToInt32(Request.Headers["X-Hospital-Id"].FirstOrDefault()) : 0;
+            }
+            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? reportModel.GenerateOpConsultationBillingReport(entity, jwtStatus) : accessStatus;
             return Ok(new
             {
                 status = res.status,
@@ -71,7 +84,13 @@ namespace Pinnacle.Controllers
             string token = Request.Headers["Authorization"];
             Ret tokenStatus = masterModel.CheckToken(token);
             Ret accessStatus = masterModel.CheckAceess(true);
-            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? reportModel.GetDashboardOpConsCount(entity,tokenStatus.data) : accessStatus;
+
+            if (tokenStatus.data != null)
+            {
+                jwtStatus = tokenStatus.data;
+                jwtStatus.HospitalId = Request.Headers["X-Hospital-Id"].FirstOrDefault() != null ? Convert.ToInt32(Request.Headers["X-Hospital-Id"].FirstOrDefault()) : 0;
+            }
+            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? reportModel.GetDashboardOpConsCount(entity, jwtStatus) : accessStatus;
             return Ok(new
             {
                 status = res.status,
@@ -88,7 +107,13 @@ namespace Pinnacle.Controllers
             string token = Request.Headers["Authorization"];
             Ret tokenStatus = masterModel.CheckToken(token);
             Ret accessStatus = masterModel.CheckAceess(true);
-            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? reportModel.OpBillingReport(entity, tokenStatus.data) : accessStatus;
+
+            if (tokenStatus.data != null)
+            {
+                jwtStatus = tokenStatus.data;
+                jwtStatus.HospitalId = Request.Headers["X-Hospital-Id"].FirstOrDefault() != null ? Convert.ToInt32(Request.Headers["X-Hospital-Id"].FirstOrDefault()) : 0;
+            }
+            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? reportModel.OpBillingReport(entity, jwtStatus) : accessStatus;
             return Ok(new
             {
                 status = res.status,

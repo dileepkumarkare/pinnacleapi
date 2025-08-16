@@ -20,7 +20,7 @@ namespace Pinnacle.Models
             _whatsappService = whatsappService;
         }
 
-        public async Task SendUHIDNumberToWhatsapp(string PhoneNumber, string PatientName, string UMRNo, string Nationality, string AreaCode, JwtStatus jwtData)
+        public async Task<Ret> SendUHIDNumberToWhatsapp(string PhoneNumber, string PatientName, string UMRNo, string Nationality, string AreaCode, JwtStatus jwtData)
         {
             HospitalEntity hospital = db.Hospital.Where(h => h.HospitalId == jwtData.HospitalId).FirstOrDefault();
 
@@ -72,7 +72,7 @@ namespace Pinnacle.Models
             }
 
             _whatsappService.SendMessageAsync(PhoneNumber, Message);
-
+            return new Ret { status = true, message = "Whatsapp message sent successfully." };
         }
         public static void TranslateText(string Text, string TargetLanguage)
         {

@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Pinnacle.Entities;
+using Pinnacle.Helpers.JWT;
 using Pinnacle.Models;
 using Serilog;
 namespace Pinnacle.Controllers
@@ -11,7 +12,7 @@ namespace Pinnacle.Controllers
     {
         DesignationModel model = new DesignationModel();
         MasterModel masterModel = new MasterModel();
-
+        JwtStatus jwtStatus = new JwtStatus();
 
         [HttpPost]
         [Route("SaveDesignation")]
@@ -20,19 +21,31 @@ namespace Pinnacle.Controllers
             string token = Request.Headers["Authorization"];
             Ret tokenStatus = masterModel.CheckToken(token);
             Ret accessStatus = masterModel.CheckAceess(true);
-            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? model.SaveDesignation(entity, tokenStatus.data) : accessStatus;
+
+            if (tokenStatus.data != null)
+            {
+                jwtStatus = tokenStatus.data;
+                jwtStatus.HospitalId = Request.Headers["X-Hospital-Id"].FirstOrDefault() != null ? Convert.ToInt32(Request.Headers["X-Hospital-Id"].FirstOrDefault()) : 0;
+            }
+            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? model.SaveDesignation(entity, jwtStatus) : accessStatus;
             return Ok(new { status = res.status, IstokenExpired = tokenStatus.IstokenExpired ?? false, message = res.message, data = res.data });
         }
         [HttpPost]
-        [Route("DesignationFileImport")] 
-        public IActionResult DesignationFileImport([FromForm]ImportFile File)
+        [Route("DesignationFileImport")]
+        public IActionResult DesignationFileImport([FromForm] ImportFile File)
         {
             try
             {
                 string token = Request.Headers["Authorization"];
                 Ret tokenStatus = masterModel.CheckToken(token);
                 Ret accessStatus = masterModel.CheckAceess(true);
-                Ret Configs = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? model.DesignationFileImport(File,tokenStatus.data) : accessStatus;
+
+                if (tokenStatus.data != null)
+                {
+                    jwtStatus = tokenStatus.data;
+                    jwtStatus.HospitalId = Request.Headers["X-Hospital-Id"].FirstOrDefault() != null ? Convert.ToInt32(Request.Headers["X-Hospital-Id"].FirstOrDefault()) : 0;
+                }
+                Ret Configs = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? model.DesignationFileImport(File, jwtStatus) : accessStatus;
                 if (Configs.status)
                 {
                     return Ok(new { status = Configs.status, message = Configs.message, data = Configs.data });
@@ -51,7 +64,7 @@ namespace Pinnacle.Controllers
         [HttpPost]
         [Route("SaveTitle")]
         public IActionResult SaveTitle(TitleEntity entity)
-        { 
+        {
             string token = Request.Headers["Authorization"];
             Ret tokenStatus = masterModel.CheckToken(token);
             Ret accessStatus = masterModel.CheckAceess(true);
@@ -88,7 +101,12 @@ namespace Pinnacle.Controllers
             Ret accessStatus = masterModel.CheckAceess(true);
             Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? model.GetAllDesignations(entity) : accessStatus;
             return Ok(new
-            { status = res.status, IstokenExpired = tokenStatus.IstokenExpired ?? false, message = res.message, data = res.data, totalCount = res.totalCount ?? 0
+            {
+                status = res.status,
+                IstokenExpired = tokenStatus.IstokenExpired ?? false,
+                message = res.message,
+                data = res.data,
+                totalCount = res.totalCount ?? 0
             });
         }
 

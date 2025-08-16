@@ -5,7 +5,8 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Pinnacle.Entities;
 using System.Data;
- 
+using System.Security.Cryptography;
+
 
 namespace Pinnacle.Helpers.JWT
 {
@@ -47,7 +48,7 @@ namespace Pinnacle.Helpers.JWT
                 // Get secret key
                 var key = System.Text.Encoding.ASCII.GetBytes(jwtSettings.IssuerSigningKey);
                 Guid Id = Guid.Empty;
-                DateTime expireTime = DateTime.Now.AddHours(10); 
+                DateTime expireTime = DateTime.Now.AddHours(10);
                 //DateTime expireTime = DateTime.UtcNow.AddMinutes(5*60+31); //expire in 1 minute
                 //DateTime expireTime = DateTime.UtcNow.AddMonths(2).AddMinutes(5 * 60 + 30); //expire in 1 our
                 UserToken.Validaty = expireTime.TimeOfDay;
@@ -65,5 +66,17 @@ namespace Pinnacle.Helpers.JWT
                 throw;
             }
         }
+
+        public static string RefreshToken()
+        {
+            var randomNumbner = new byte[64];
+            using (var randomNumberGen = RandomNumberGenerator.Create())
+            {
+                randomNumberGen.GetBytes(randomNumbner);
+                return Convert.ToBase64String(randomNumbner);
+            };
+
+        }
+
     }
 }

@@ -60,7 +60,7 @@ namespace Pinnacle.Models
                         Email = entity.Email,
                         Gender = entity.Gender,
                         DOB = entity.DOB,
-                        Status = "Active",
+                        Status = entity.Status == "Active" ? "Active" : "Inactive",
                         AddedBy = jwt.Id
                     };
 
@@ -93,6 +93,7 @@ namespace Pinnacle.Models
                         existingDoctor.ConsultingType = entity.ConsultingType;
                         existingDoctor.RegistrationNo = entity.RegistrationNo;
                         existingDoctor.IsHOD = string.IsNullOrEmpty(entity.IsHOD) ? "No" : entity.IsHOD;
+                        existingDoctor.Status = entity.Status;
                         existingDoctor.Title = entity.Title;
                         db.Doctors.Update(existingDoctor);
                         msg = "Doctor updated successfully!";
@@ -106,6 +107,7 @@ namespace Pinnacle.Models
                             existingUser.DOB = entity.DOB;
                             existingUser.ContactNo = entity.ContactNo;
                             existingUser.Gender = entity.Gender;
+                            existingUser.Status = entity.Status == "Active" ? "Active" : "Inactive";
                             db.Users.Update(existingUser);
                         }
 
@@ -343,7 +345,7 @@ namespace Pinnacle.Models
                              join k in db.Users on d.CreatedBy equals k.Id
                              join l in db.Users on d.UpdateBy equals l.Id into modifyUser
                              from m in modifyUser.DefaultIfEmpty()
-                             where j.HospitalId == jwtData.HospitalId
+                                 //where d.Status == "Active"//j.HospitalId == jwtData.HospitalId
                              orderby d.DoctorId descending
                              select new
                              {
@@ -351,7 +353,7 @@ namespace Pinnacle.Models
                                  DoctorCode = j.UserName,
                                  d.DoctorType,
                                  d.Status,
-                                 d.DoctorName,
+                                 DoctorName = string.IsNullOrEmpty(d.Title) ? d.DoctorName : d.Title + d.DoctorName,
                                  d.DepartmentId,
                                  d.DesignationId,
                                  f.DepartmentName,
@@ -395,7 +397,7 @@ namespace Pinnacle.Models
                              join k in db.Users on d.CreatedBy equals k.Id
                              join l in db.Users on d.UpdateBy equals l.Id into modifyUser
                              from m in modifyUser.DefaultIfEmpty()
-                             where j.HospitalId == jwtData.HospitalId
+                                 //where j.HospitalId == jwtData.HospitalId
                              orderby d.DoctorId descending
                              select new
                              {
@@ -758,8 +760,7 @@ namespace Pinnacle.Models
                 var _doctorList = (from a in db.Doctors
                                    join b in db.Department on a.DepartmentId equals b.DepartmentId
                                    join c in db.Users on a.UserId equals Convert.ToInt32(c.Id)
-                                   where c.HospitalId == jwtData.HospitalId &&
-                                   (Id == 0 || a.DoctorId == Id)
+                                   where (Id == 0 || a.DoctorId == Id) && c.Status == "Active"
                                    select new
                                    {
                                        value = a.DoctorId,
@@ -777,61 +778,64 @@ namespace Pinnacle.Models
                 return new Ret { status = false, message = FailedSaveMessage() };
             }
         }
-        public Ret GetOpConsultationByDoctorId(Pagination entity, JwtStatus JwtData)
+        public Ret GetOpConsultationByDoctorId(PrescriptionFilter entity, JwtStatus JwtData)
         {
             try
             {
-                var query = (from a in db.OpConsultation
-                             join c in db.Patient on a.PatientId equals c.PatientId
-                             join d in db.Users on c.UserId equals d.Id
-                             join e in db.Doctors on a.DoctorId equals e.DoctorId
-                             join f in db.Users on e.UserId equals f.Id
-                             join g in db.DoctorPrescription on a.ConsultationId equals g.ConsultationId into prescription
-                             from h in prescription.DefaultIfEmpty()
-                             where f.Id == JwtData.Id
-                             orderby a.ConsultationId descending
-                             select new
-                             {
-                                 a.ConsultationId,
-                                 a.ConsultationNo,
-                                 a.PatientId,
-                                 a.RefNo,
-                                 LastValidityDate = Convert.ToDateTime(a.LastValidityDate).Date,
-                                 a.VisitType,
-                                 a.PaymentBy,
-                                 a.OrganizationId,
-                                 a.DoctorId,
-                                 a.ConsultantFee,
-                                 a.Visit,
-                                 a.ReferralType,
-                                 a.ReferredBy,
-                                 a.CreatedBy,
-                                 a.Status,
-                                 ConstultationDate = Convert.ToDateTime(a.ConsultationDate).ToString("yyyy-MM-dd hh:mm:tt") ?? DateTime.MinValue.ToString("dd-MM-yyyy"),
-                                 a.CreatedDate,
-                                 a.UpdatedBy,
-                                 a.UpdatedDate,
-                                 PatientName = d.UserFullName,
-                                 umrNumber = d.UserName,
-                                 d.ContactNo,
-                                 d.Email,
-                                 DOB = Convert.ToDateTime(d.DOB).ToString("yyyy-MM-dd"),
-                                 DoctorName = f.UserFullName,
-                                 DoctorCode = f.UserName,
-                                 d.Gender,
-                                 c.Age,
-                                 IsReqforCancel = a.CancelBy > 0 && a.Status == "Booked" ? "Yes" : "No",
-                                 IsDocApproved = a.IsDocApproved ?? "No",
-                                 IsAudApprove = a.IsAudApprove ?? "No",
-                                 Investigation = (h.Investigations != null && h.Investigations == "[]" || h.Investigations == null) ? "No" : "Yes",
-                                 Medication = (h.Medication != null && h.Medication == "[]" || h.Medication == null) ? "No" : "Yes"
-,
-                             }).AsNoTracking();
-                if (!string.IsNullOrEmpty(entity.SearchKey)) query = query.Where(a => a.PatientName.Contains(entity.SearchKey));
+                var res = (from a in db.OpConsultation
+                           join c in db.Patient on a.PatientId equals c.PatientId
+                           join d in db.Users on c.UserId equals d.Id
+                           join e in db.Doctors on a.DoctorId equals e.DoctorId
+                           join f in db.Users on e.UserId equals f.Id
+                           join g in db.DoctorPrescription on a.ConsultationId equals g.ConsultationId into prescription
+                           from h in prescription.DefaultIfEmpty()
+                           where f.Id == JwtData.Id && a.ConsultationDate.HasValue
+                               && a.ConsultationDate.Value.Date >= entity.FromDate.Date
+                               && a.ConsultationDate.Value.Date <= entity.ToDate.Date
+                           orderby a.ConsultationId ascending
+                           select new
+                           {
+                               a.ConsultationId,
+                               a.ConsultationNo,
+                               a.PatientId,
+                               a.RefNo,
+                               LastValidityDate = Convert.ToDateTime(a.LastValidityDate).Date,
+                               a.VisitType,
+                               a.PaymentBy,
+                               a.OrganizationId,
+                               a.DoctorId,
+                               a.ConsultantFee,
+                               a.Visit,
+                               a.ReferralType,
+                               a.ReferredBy,
+                               a.CreatedBy,
+                               a.Status,
+                               ConsultationDate = Convert.ToDateTime(a.ConsultationDate).ToString("yyyy-MM-dd hh:mm:tt") ?? DateTime.MinValue.ToString("dd-MM-yyyy"),
+                               a.CreatedDate,
+                               a.UpdatedBy,
+                               a.UpdatedDate,
+                               PatientName = d.UserFullName,
+                               umrNumber = d.UserName,
+                               d.ContactNo,
+                               d.Email,
+                               DOB = Convert.ToDateTime(d.DOB).ToString("yyyy-MM-dd"),
+                               DoctorName = f.UserFullName,
+                               DoctorCode = f.UserName,
+                               d.Gender,
+                               c.Age,
+                               IsReqforCancel = a.CancelBy > 0 && a.Status == "Booked" ? "Yes" : "No",
+                               IsDocApproved = a.IsDocApproved ?? "No",
+                               IsAudApprove = a.IsAudApprove ?? "No",
+                               Investigation = ((h.Investigations != null && h.Investigations == "[]") || h.Investigations == null || string.IsNullOrEmpty(h.Investigations)) ? "No" : "Yes",
+                               Medication = ((h.Medication != null && h.Medication == "[]") || h.Medication == null || string.IsNullOrEmpty(h.Medication)) ? "No" : "Yes",
+                               IsPrescriptionUpdated = (!string.IsNullOrEmpty(h.ChiefComplaint) || !string.IsNullOrEmpty(h.PastHistory) || !string.IsNullOrEmpty(h.HistoryofPresentIllness) || !string.IsNullOrEmpty(h.ProvisionalDiagnosis) ||
+                                                      !string.IsNullOrEmpty(h.PhysicalExamination) || !string.IsNullOrEmpty(h.Allergies) || !string.IsNullOrEmpty(h.ClinicalNotes) || !string.IsNullOrEmpty(h.Advice) || !string.IsNullOrEmpty(h.SurgicalAdvice)) ? "Yes" : "No"
+                           }).AsNoTracking();
+                //if (!string.IsNullOrEmpty(entity.SearchKey)) query = query.Where(a => a.PatientName.Contains(entity.SearchKey));
 
-                var totalCount = query.Count();
-                var res = PaginatedValues(query, entity);
-                return new Ret { status = true, message = FetchMessage(res, "Op consultation"), data = res, totalCount = totalCount };
+                // var totalCount = query.Count();
+                // var res = PaginatedValues(query, entity);
+                return new Ret { status = true, message = FetchMessage(res, "Op consultation"), data = res, totalCount = 0 };
 
             }
             catch (Exception ex)
@@ -872,7 +876,7 @@ namespace Pinnacle.Models
                                   ReferredBy = a.ReferredBy ?? "",
                                   a.CreatedBy,
                                   a.Status,
-                                  ConstultationDate = a.ConsultationDate.HasValue
+                                  ConsultationDate = a.ConsultationDate.HasValue
                                       ? a.ConsultationDate.Value.ToString("yyyy-MM-dd hh:mm tt")
                                       : "",
                                   a.CreatedDate,
@@ -888,7 +892,10 @@ namespace Pinnacle.Models
                                   IsDocApproved = a.IsDocApproved ?? "No",
                                   IsAudApprove = a.IsAudApprove ?? "No",
                                   Investigation = string.IsNullOrWhiteSpace(h.Investigations) || h.Investigations == "[]" ? "No" : "Yes",
-                                  Medication = string.IsNullOrWhiteSpace(h.Medication) || h.Medication == "[]" ? "No" : "Yes"
+                                  Medication = string.IsNullOrWhiteSpace(h.Medication) || h.Medication == "[]" ? "No" : "Yes",
+                                  IsPrescriptionUpdated = (!string.IsNullOrEmpty(h.ChiefComplaint) || !string.IsNullOrEmpty(h.PastHistory) || !string.IsNullOrEmpty(h.HistoryofPresentIllness) || !string.IsNullOrEmpty(h.ProvisionalDiagnosis) ||
+                                                        !string.IsNullOrEmpty(h.PhysicalExamination) || !string.IsNullOrEmpty(h.Allergies) || !string.IsNullOrEmpty(h.ClinicalNotes) || !string.IsNullOrEmpty(h.Advice) || !string.IsNullOrEmpty(h.SurgicalAdvice)) ? "Yes" : "No"
+
                               }).ToList();
 
                 var op = result.AsQueryable();

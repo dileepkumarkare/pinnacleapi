@@ -30,6 +30,13 @@ namespace Pinnacle.Models
                 entity.CreatedBy = jwtData.Id;
                 entity.HospitalId = jwtData.HospitalId;
                 int userId = 0;
+                bool isExists = db.Users.Any(u => u.ContactNo == entity.ContactNo && u.UserFullName==entity.PatientName);
+                if (isExists)
+                {
+                    return new Ret { status = false, message = "Patient already exists, with mobile no !", data = new { patientId = entity.PatientId } };
+                }
+
+
                 var lastUMR = db.Users
             .Where(p => p.UserName.StartsWith(condition) && p.RoleId == 5 && p.UserId == null)
             .Select(p => p.UserName)
@@ -146,6 +153,7 @@ namespace Pinnacle.Models
                             UserName = entity.UMRNumber,
                             AddedBy = entity.CreatedBy
                         };
+                        this.SaveUser(_users, out userId);
                         //var userData = db.Users.Where(u => u.Id == resData.UserId && u.UserName.StartsWith("T")).FirstOrDefault();
                         //if (userData != null)
                         //{
@@ -256,7 +264,7 @@ namespace Pinnacle.Models
                              from title in titleMasters.DefaultIfEmpty()
                              join i in db.CorporateRegistration on a.PatientId equals i.PatientId into corporatepatients
                              from j in corporatepatients.DefaultIfEmpty()
-                             where ((entity.Id == 0 || a.PatientId == entity.Id) && (b.HospitalId == jwtData.HospitalId || b.HospitalId == 0) && b.RoleId == 5)
+                             where ((entity.Id == 0 || a.PatientId == entity.Id) && b.RoleId == 5)
                              orderby a.PatientId descending
                              select new
                              {
@@ -455,7 +463,7 @@ namespace Pinnacle.Models
                 return new Ret { status = false, message = FailedSaveMessage() };
             }
         }
-        public Ret PatientUMRGetByNumber(Search entity)
+        public Ret PatientUMRGetByNumber(Search entity, JwtStatus jwtData)
         {
             try
             {
@@ -486,7 +494,7 @@ namespace Pinnacle.Models
                                     b.OccupationId
                                 }
                                ).AsNoTracking().FirstOrDefault();
-                OpConsultationEntity _opCons = this.GetOpOConsultationValidity(Convert.ToInt32(entity.OrganizationId), _patient.PatientId, Convert.ToInt32(_patient.HospitalId), out RefNo, entity.PatientType, Convert.ToInt32(entity.DoctorId));
+                OpConsultationEntity _opCons = this.GetOpOConsultationValidity(Convert.ToInt32(entity.OrganizationId), _patient.PatientId, Convert.ToInt32(jwtData.HospitalId), out RefNo, entity.PatientType, Convert.ToInt32(entity.DoctorId));
                 string _ReceiptNumber = GetConsultationReceiptNumber();
 
                 if (_opCons.RefNo == "NA" && entity.PatientType != "Self")
@@ -583,10 +591,17 @@ namespace Pinnacle.Models
                         : $"COS{(lastNo + 1):D3}")
                     : _consultationNo;
             }
-            OpConsultationEntity _opConsultation = db.OpConsultation.Where(cons => cons.PatientId == PatientId && cons.PaymentBy == PatientType && cons.DoctorId == DoctorId).OrderByDescending(cons => cons).FirstOrDefault();
-            int _visit = _opConsultation is not null && _opConsultation.Visit != null && _opConsultation.Visit < _visitDays.Visits ? Convert.ToInt32(_opConsultation.Visit) : 0;
-            DateTime _lastVisitDate = _opConsultation is not null && _opConsultation.LastValidityDate != null && _opConsultation.Visit < _visitDays.Visits ? Convert.ToDateTime(_opConsultation.LastValidityDate) : PatientType == "Corporate" && _refNo != null ? Convert.ToDateTime(_refNo.RefNoValidUpto) : DateTime.Now.AddDays(Convert.ToInt32(_visitDays.Days)).Date;
-            string _visitType = (_visit + 1 > 1 && _visit + 1 <= _visitDays.Visits && _lastVisitDate != null && DateTime.Now <= Convert.ToDateTime(_lastVisitDate)) ? "Revisit" : "Normal";
+            OpConsultationEntity _opConsultation = db.OpConsultation
+    .Where(cons => cons.PatientId == PatientId
+                && cons.PaymentBy == PatientType
+                && cons.DoctorId == DoctorId
+                && cons.LastValidityDate != null
+                && cons.LastValidityDate.Value.Date >= DateTime.Now.Date)
+    .OrderByDescending(cons => cons.LastValidityDate)
+    .FirstOrDefault();
+            DateTime _lastVisitDate = _opConsultation is not null && _opConsultation.LastValidityDate != null && _opConsultation.LastValidityDate >= DateTime.Now && _opConsultation.Visit < _visitDays.Visits ? Convert.ToDateTime(_opConsultation.LastValidityDate) : PatientType == "Corporate" && _refNo != null ? Convert.ToDateTime(_refNo.RefNoValidUpto) : DateTime.Now.AddDays(Convert.ToInt32(_visitDays.Days) - 1).Date;
+            int _visit = _opConsultation is not null && _opConsultation.Visit != null && _opConsultation.Visit < _visitDays.Visits && DateTime.Now <= Convert.ToDateTime(_lastVisitDate) ? Convert.ToInt32(_opConsultation.Visit) : 0;
+            string _visitType = ((_visit + 1 == 1 || _visit + 1 > _visitDays.Visits) && _lastVisitDate != null) ? "Normal" : "Revisit";
             int doctorId = 0;
             var _consultationDate = _opConsultation is not null ? _opConsultation.ConsultationDate : DateTime.MinValue;
             if (_opConsultation != null && int.TryParse(_opConsultation.DoctorId?.ToString(), out int parsedDoctorId))
@@ -778,7 +793,7 @@ namespace Pinnacle.Models
             {
                 var _patientUrmLists = (from user in db.Users
                                         join patient in db.Patient on user.Id equals patient.UserId
-                                        where user.HospitalId == jwtData.HospitalId && user.RoleId == 5
+                                        where user.RoleId == 5
                                         select new { umrNumber = user.UserName, PatientName = user.UserFullName, user.ContactNo, user.Email, patient.PatientId }).
                                         OrderByDescending(user => user.umrNumber).AsNoTracking();
                 if (_patientUrmLists is not null)
@@ -839,7 +854,7 @@ namespace Pinnacle.Models
                                  a.ReferredBy,
                                  a.CreatedBy,
                                  a.Status,
-                                 ConstultationDate = Convert.ToDateTime(a.ConsultationDate).ToString("yyyy-MM-dd hh:mm:tt") ?? DateTime.MinValue.ToString("dd-MM-yyyy"),
+                                 ConsultationDate = Convert.ToDateTime(a.ConsultationDate).ToString("yyyy-MM-dd hh:mm:tt") ?? DateTime.MinValue.ToString("dd-MM-yyyy"),
                                  a.CreatedDate,
                                  a.UpdatedBy,
                                  a.UpdatedDate,

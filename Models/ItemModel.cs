@@ -16,6 +16,7 @@ namespace Pinnacle.Models
         {
             try
             {
+                #region Comment
                 //DataSet dsInventory = oracleHelper.GetLiveInventory();
                 //string json = JsonConvert.SerializeObject(dsInventory.Tables[0]);
                 //List<LiveInventory> inventoryList = JsonConvert.DeserializeObject<List<LiveInventory>>(json);
@@ -43,6 +44,7 @@ namespace Pinnacle.Models
                 //               a.FormCodeDesc,
                 //               OnHandQty = _inv?.OnHandQty ?? 0.00
                 //           }).ToList();
+                #endregion
                 var res = (from a in db.ItemMaster
                            join b in db.ItemGenericNames on a.GenericCodeId equals b.Id
                            join c in db.ItemFormCodes on a.FormCodeId equals c.Id
@@ -149,7 +151,7 @@ namespace Pinnacle.Models
                     if (existingService != null)
                     {
                         existingService.IsFavorite = entity.IsFavorite;
-                        db.DoctorFavMedicineServices.Update(existingService);
+                        db.DoctorFavMedicineServices.Remove(existingService);
                         db.SaveChanges();
                     }
                 }

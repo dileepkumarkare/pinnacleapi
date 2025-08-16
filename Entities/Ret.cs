@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using DevExpress.Charts.Native;
+using System.Numerics;
 
 namespace Pinnacle.Entities
 {
@@ -9,5 +10,6 @@ namespace Pinnacle.Entities
         public dynamic? data { get; set; }
         public string? message { get; set; }
         public int? totalCount { get; set; }
+        public string? RefreshToken { get; set; }
     }
 }

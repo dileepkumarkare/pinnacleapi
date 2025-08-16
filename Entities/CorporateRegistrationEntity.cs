@@ -19,10 +19,6 @@ namespace Pinnacle.Entities
         public string? RelationType { get; set; }
         public string? EmpNo { get; set; }
         public string? EmpName { get; set; }
-        public string? Designation { get; set; }
-        public string? Department { get; set; }
-        public decimal? BasicSalary { get; set; }
-        public string? Branch { get; set; }
         public int? CreatedBy { get; set; }
         public DateTime? CreatedDate { get; set; } = DateTime.Now;
         public int? UpdatedBy { get; set; }
@@ -43,7 +39,6 @@ namespace Pinnacle.Entities
         public string? PurposeofRef { get; set; }
         public string? LetterIssueBy { get; set; }
         public DateTime? RefNoValidUpto { get; set; }
-        public int? MaxCredLimit { get; set; } = 0;
         public int? CreatedBy { get; set; }
         public DateTime? CreatedDate { get; set; }
         public int? UpdatedBy { get; set; }

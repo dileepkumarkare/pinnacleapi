@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Pinnacle.Entities;
+using Pinnacle.Helpers.JWT;
 using Pinnacle.Models;
 using Serilog;
 
@@ -13,8 +14,9 @@ namespace Pinnacle.Controllers
     {
         MasterModel masterModel = new MasterModel();
         DoctorModal doctorModel = new DoctorModal();
+        JwtStatus jwtStatus = new JwtStatus();
         private readonly string _ipAddress;
-
+        int hospitalId = 0;
 
         public DoctorController(IHttpContextAccessor httpContextAccessor)
         {
@@ -23,6 +25,8 @@ namespace Pinnacle.Controllers
             {
                 _ipAddress = httpContextAccessor.HttpContext.Connection.RemoteIpAddress?.ToString();
             }
+            hospitalId = !string.IsNullOrEmpty(httpContextAccessor.HttpContext.Request.Headers["X-Hospital-Id"].FirstOrDefault()) ? Convert.ToInt32(httpContextAccessor.HttpContext.Request.Headers["X-Hospital-Id"].FirstOrDefault()) : 0;
+
         }
 
         [HttpPost]
@@ -38,7 +42,12 @@ namespace Pinnacle.Controllers
                 }
                 string token = Request.Headers["Authorization"];
                 Ret tokenStatus = masterModel.CheckToken(token);
-                Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : doctorModel.SaveDoctor(entity, tokenStatus.data, ipAddress);
+                if (tokenStatus.data != null)
+                {
+                    jwtStatus = tokenStatus.data;
+                    jwtStatus.HospitalId = Convert.ToInt32(hospitalId);
+                }
+                Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : doctorModel.SaveDoctor(entity, jwtStatus, ipAddress);
                 return Ok(new { status = res.status, IstokenExpired = tokenStatus.IstokenExpired ?? false, message = res.message, data = res.data });
             }
             catch (Exception ex)
@@ -56,7 +65,12 @@ namespace Pinnacle.Controllers
 
                 string token = Request.Headers["Authorization"];
                 Ret tokenStatus = masterModel.CheckToken(token);
-                Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : doctorModel.SaveDoctorDetails(entity, tokenStatus.data, _ipAddress);
+                if (tokenStatus.data != null)
+                {
+                    jwtStatus = tokenStatus.data;
+                    jwtStatus.HospitalId = Convert.ToInt32(hospitalId);
+                }
+                Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : doctorModel.SaveDoctorDetails(entity, jwtStatus, _ipAddress);
                 return Ok(new { status = res.status, IstokenExpired = tokenStatus.IstokenExpired ?? false, message = res.message, data = res.data });
             }
             catch (Exception ex)
@@ -72,7 +86,12 @@ namespace Pinnacle.Controllers
             string token = Request.Headers["Authorization"];
             Ret tokenStatus = masterModel.CheckToken(token);
             Ret accessStatus = masterModel.CheckAceess(true);
-            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? doctorModel.GetAllDoctors(entity, tokenStatus.data) : accessStatus;
+            if (tokenStatus.data != null)
+            {
+                jwtStatus = tokenStatus.data;
+                jwtStatus.HospitalId = Convert.ToInt32(hospitalId);
+            }
+            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? doctorModel.GetAllDoctors(entity, jwtStatus) : accessStatus;
             return Ok(new
             {
                 status = res.status,
@@ -90,7 +109,12 @@ namespace Pinnacle.Controllers
             string token = Request.Headers["Authorization"];
             Ret tokenStatus = masterModel.CheckToken(token);
             Ret accessStatus = masterModel.CheckAceess(true);
-            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? doctorModel.GetDoctorsList(entity, tokenStatus.data) : accessStatus;
+            if (tokenStatus.data != null)
+            {
+                jwtStatus = tokenStatus.data;
+                jwtStatus.HospitalId = Convert.ToInt32(hospitalId);
+            }
+            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? doctorModel.GetDoctorsList(entity, jwtStatus) : accessStatus;
             return Ok(new
             {
                 status = res.status,
@@ -108,6 +132,11 @@ namespace Pinnacle.Controllers
             string token = Request.Headers["Authorization"];
             Ret tokenStatus = masterModel.CheckToken(token);
             Ret accessStatus = masterModel.CheckAceess(true);
+            if (tokenStatus.data != null)
+            {
+                jwtStatus = tokenStatus.data;
+                jwtStatus.HospitalId = Convert.ToInt32(hospitalId);
+            }
             Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? doctorModel.DoctorGetById(obj.Id) : accessStatus;
             return Ok(new { status = res.status, IstokenExpired = tokenStatus.IstokenExpired ?? false, message = res.message, data = res.data });
         }
@@ -118,7 +147,12 @@ namespace Pinnacle.Controllers
             string token = Request.Headers["Authorization"];
             Ret tokenStatus = masterModel.CheckToken(token);
             Ret accessStatus = masterModel.CheckAceess(true);
-            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? doctorModel.RemoveEducationDetails(obj.Id, _ipAddress, tokenStatus.data) : accessStatus;
+            if (tokenStatus.data != null)
+            {
+                jwtStatus = tokenStatus.data;
+                jwtStatus.HospitalId = Convert.ToInt32(hospitalId);
+            }
+            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? doctorModel.RemoveEducationDetails(obj.Id, _ipAddress, jwtStatus) : accessStatus;
             return Ok(new { status = res.status, IstokenExpired = tokenStatus.IstokenExpired ?? false, message = res.message, data = res.data });
         }
 
@@ -143,7 +177,12 @@ namespace Pinnacle.Controllers
             {
                 string token = Request.Headers["Authorization"];
                 Ret tokenStatus = masterModel.CheckToken(token);
-                Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : doctorModel.SaveDoctorEducation(entity, tokenStatus.data);
+                if (tokenStatus.data != null)
+                {
+                    jwtStatus = tokenStatus.data;
+                    jwtStatus.HospitalId = Convert.ToInt32(hospitalId);
+                }
+                Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : doctorModel.SaveDoctorEducation(entity, jwtStatus);
                 return Ok(new { status = res.status, IstokenExpired = tokenStatus.IstokenExpired ?? false, message = res.message, data = res.data });
             }
             catch (Exception ex)
@@ -161,7 +200,12 @@ namespace Pinnacle.Controllers
             {
                 string token = Request.Headers["Authorization"];
                 Ret tokenStatus = masterModel.CheckToken(token);
-                Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : doctorModel.SaveDoctorExperience(entity, tokenStatus.data);
+                if (tokenStatus.data != null)
+                {
+                    jwtStatus = tokenStatus.data;
+                    jwtStatus.HospitalId = Convert.ToInt32(hospitalId);
+                }
+                Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : doctorModel.SaveDoctorExperience(entity, jwtStatus);
                 return Ok(new { status = res.status, IstokenExpired = tokenStatus.IstokenExpired ?? false, message = res.message, data = res.data });
             }
             catch (Exception ex)
@@ -221,7 +265,12 @@ namespace Pinnacle.Controllers
             string token = Request.Headers["Authorization"];
             Ret tokenStatus = masterModel.CheckToken(token);
             Ret accessStatus = masterModel.CheckAceess(true);
-            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? doctorModel.RemoveExperienceDetails(obj.Id, _ipAddress, tokenStatus.data) : accessStatus;
+            if (tokenStatus.data != null)
+            {
+                jwtStatus = tokenStatus.data;
+                jwtStatus.HospitalId = Convert.ToInt32(hospitalId);
+            }
+            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? doctorModel.RemoveExperienceDetails(obj.Id, _ipAddress, jwtStatus) : accessStatus;
             return Ok(new { status = res.status, IstokenExpired = tokenStatus.IstokenExpired ?? false, message = res.message, data = res.data });
         }
         [HttpPost]
@@ -231,18 +280,28 @@ namespace Pinnacle.Controllers
             string token = Request.Headers["Authorization"];
             Ret tokenStatus = masterModel.CheckToken(token);
             Ret accessStatus = masterModel.CheckAceess(true);
-            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? doctorModel.GetAllDoctorLabel(obj.Id, tokenStatus.data) : accessStatus;
+            if (tokenStatus.data != null)
+            {
+                jwtStatus = tokenStatus.data;
+                jwtStatus.HospitalId = Convert.ToInt32(hospitalId);
+            }
+            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? doctorModel.GetAllDoctorLabel(obj.Id, jwtStatus) : accessStatus;
             return Ok(new { status = res.status, IstokenExpired = tokenStatus.IstokenExpired ?? false, message = res.message, data = res.data });
         }
 
         [HttpPost]
         [Route("GetOpConsultationByDoctorId")]
-        public IActionResult GetOpConsultationByDoctorId(Pagination entity)
+        public IActionResult GetOpConsultationByDoctorId(PrescriptionFilter entity)
         {
             string token = Request.Headers["Authorization"];
             Ret tokenStatus = masterModel.CheckToken(token);
             Ret accessStatus = masterModel.CheckAceess(true);
-            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? doctorModel.GetOpConsultationByDoctorId(entity, tokenStatus.data) : accessStatus;
+            if (tokenStatus.data != null)
+            {
+                jwtStatus = tokenStatus.data;
+                jwtStatus.HospitalId = Convert.ToInt32(hospitalId);
+            }
+            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? doctorModel.GetOpConsultationByDoctorId(entity, jwtStatus) : accessStatus;
             return Ok(new { status = res.status, IstokenExpired = tokenStatus.IstokenExpired ?? false, message = res.message, data = res.data, totalCount = res.totalCount });
         }
 
@@ -253,7 +312,12 @@ namespace Pinnacle.Controllers
             string token = Request.Headers["Authorization"];
             Ret tokenStatus = masterModel.CheckToken(token);
             Ret accessStatus = masterModel.CheckAceess(true);
-            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? doctorModel.GetOpConsultationByNurseId(entity, tokenStatus.data) : accessStatus;
+            if (tokenStatus.data != null)
+            {
+                jwtStatus = tokenStatus.data;
+                jwtStatus.HospitalId = Convert.ToInt32(hospitalId);
+            }
+            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? doctorModel.GetOpConsultationByNurseId(entity, jwtStatus) : accessStatus;
             return Ok(new { status = res.status, IstokenExpired = tokenStatus.IstokenExpired ?? false, message = res.message, data = res.data, totalCount = res.totalCount });
         }
 
@@ -266,7 +330,12 @@ namespace Pinnacle.Controllers
                 string token = Request.Headers["Authorization"];
                 Ret tokenStatus = masterModel.CheckToken(token);
                 Ret accessStatus = masterModel.CheckAceess(true);
-                Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? doctorModel.ScheduleAvailability(je, tokenStatus.data) : accessStatus;
+                if (tokenStatus.data != null)
+                {
+                    jwtStatus = tokenStatus.data;
+                    jwtStatus.HospitalId = Convert.ToInt32(hospitalId);
+                }
+                Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? doctorModel.ScheduleAvailability(je, jwtStatus) : accessStatus;
                 return Ok(new { status = res.status, IstokenExpired = tokenStatus.IstokenExpired ?? false, message = res.message, data = res.data, totalCount = res.totalCount });
 
             }
@@ -286,7 +355,12 @@ namespace Pinnacle.Controllers
                 string token = Request.Headers["Authorization"];
                 Ret tokenStatus = masterModel.CheckToken(token);
                 Ret accessStatus = masterModel.CheckAceess(true);
-                Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? doctorModel.GetAvailability(je, tokenStatus.data) : accessStatus;
+                if (tokenStatus.data != null)
+                {
+                    jwtStatus = tokenStatus.data;
+                    jwtStatus.HospitalId = Convert.ToInt32(hospitalId);
+                }
+                Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? doctorModel.GetAvailability(je, jwtStatus) : accessStatus;
                 return Ok(new { status = res.status, IstokenExpired = tokenStatus.IstokenExpired ?? false, message = res.message, data = res.data, totalCount = res.totalCount });
 
             }
@@ -329,7 +403,12 @@ namespace Pinnacle.Controllers
                 string token = Request.Headers["Authorization"];
                 Ret tokenStatus = masterModel.CheckToken(token);
                 Ret accessStatus = masterModel.CheckAceess(true);
-                Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? doctorModel.ScheduleStatusUpdate(je, tokenStatus.data) : accessStatus;
+                if (tokenStatus.data != null)
+                {
+                    jwtStatus = tokenStatus.data;
+                    jwtStatus.HospitalId = Convert.ToInt32(hospitalId);
+                }
+                Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? doctorModel.ScheduleStatusUpdate(je, jwtStatus) : accessStatus;
                 return Ok(new { status = res.status, IstokenExpired = tokenStatus.IstokenExpired ?? false, message = res.message, data = res.data, totalCount = res.totalCount });
 
             }
@@ -349,7 +428,12 @@ namespace Pinnacle.Controllers
                 string token = Request.Headers["Authorization"];
                 Ret tokenStatus = masterModel.CheckToken(token);
                 Ret accessStatus = masterModel.CheckAceess(true);
-                Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? doctorModel.GetAvailabilityWithAppointmentMobile(je, tokenStatus.data) : accessStatus;
+                if (tokenStatus.data != null)
+                {
+                    jwtStatus = tokenStatus.data;
+                    jwtStatus.HospitalId = Convert.ToInt32(hospitalId);
+                }
+                Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? doctorModel.GetAvailabilityWithAppointmentMobile(je, jwtStatus) : accessStatus;
                 return Ok(new { status = res.status, IstokenExpired = tokenStatus.IstokenExpired ?? false, message = res.message, data = res.data, totalCount = res.totalCount });
 
             }

@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Pinnacle.Entities;
+using Pinnacle.Helpers.JWT;
 using Pinnacle.Models;
 using Serilog;
 
@@ -12,6 +13,7 @@ namespace Pinnacle.Controllers
     {
         MasterModel masterModel = new MasterModel();
         EmployeeModel employeeModel = new EmployeeModel();
+        JwtStatus jwtStatus = new JwtStatus();
 
         [HttpPost]
         [Route("GenerateEmployeeId")]
@@ -37,7 +39,12 @@ namespace Pinnacle.Controllers
             {
                 string token = Request.Headers["Authorization"];
                 Ret tokenStatus = masterModel.CheckToken(token);
-                Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : employeeModel.SaveEmployeeBasicDetails(entity, tokenStatus.data);
+                if (tokenStatus.data != null)
+                {
+                    jwtStatus = tokenStatus.data;
+                    jwtStatus.HospitalId = Request.Headers["X-Hospital-Id"].FirstOrDefault() != null ? Convert.ToInt32(Request.Headers["X-Hospital-Id"].FirstOrDefault()) : 0;
+                }
+                Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : employeeModel.SaveEmployeeBasicDetails(entity, jwtStatus);
                 return Ok(new { status = res.status, IstokenExpired = tokenStatus.IstokenExpired ?? false, message = res.message, data = res.data });
             }
             catch (Exception ex)
@@ -133,7 +140,13 @@ namespace Pinnacle.Controllers
             {
                 string token = Request.Headers["Authorization"];
                 Ret tokenStatus = masterModel.CheckToken(token);
-                Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : employeeModel.SaveEmployeeAddress(entity, tokenStatus.data);
+
+                if (tokenStatus.data != null)
+                {
+                    jwtStatus = tokenStatus.data;
+                    jwtStatus.HospitalId = Request.Headers["X-Hospital-Id"].FirstOrDefault() != null ? Convert.ToInt32(Request.Headers["X-Hospital-Id"].FirstOrDefault()) : 0;
+                }
+                Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : employeeModel.SaveEmployeeAddress(entity, jwtStatus);
                 return Ok(new { status = res.status, IstokenExpired = tokenStatus.IstokenExpired ?? false, message = res.message, data = res.data });
             }
             catch (Exception ex)
@@ -148,7 +161,13 @@ namespace Pinnacle.Controllers
             string token = Request.Headers["Authorization"];
             Ret tokenStatus = masterModel.CheckToken(token);
             Ret accessStatus = masterModel.CheckAceess(true);
-            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? employeeModel.GetAllEmployee(entity, tokenStatus.data) : accessStatus;
+
+            if (tokenStatus.data != null)
+            {
+                jwtStatus = tokenStatus.data;
+                jwtStatus.HospitalId = Request.Headers["X-Hospital-Id"].FirstOrDefault() != null ? Convert.ToInt32(Request.Headers["X-Hospital-Id"].FirstOrDefault()) : 0;
+            }
+            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? employeeModel.GetAllEmployee(entity, jwtStatus) : accessStatus;
             return Ok(new
             {
                 status = res.status,
@@ -290,7 +309,13 @@ namespace Pinnacle.Controllers
             string token = Request.Headers["Authorization"];
             Ret tokenStatus = masterModel.CheckToken(token);
             Ret accessStatus = masterModel.CheckAceess(true);
-            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? employeeModel.GetAllEmployeeLabel(obj.Id, tokenStatus.data) : accessStatus;
+
+            if (tokenStatus.data != null)
+            {
+                jwtStatus = tokenStatus.data;
+                jwtStatus.HospitalId = Request.Headers["X-Hospital-Id"].FirstOrDefault() != null ? Convert.ToInt32(Request.Headers["X-Hospital-Id"].FirstOrDefault()) : 0;
+            }
+            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? employeeModel.GetAllEmployeeLabel(obj.Id, jwtStatus) : accessStatus;
             return Ok(new { status = res.status, IstokenExpired = tokenStatus.IstokenExpired ?? false, message = res.message, data = res.data });
         }
     }

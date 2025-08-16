@@ -84,6 +84,8 @@ namespace Pinnacle.Entities
         public virtual DbSet<SampleCollectionTest> SampleCollectionTests { get; set; }
         public virtual DbSet<UserProfileEntity> UserProfile { get; set; }
         public virtual DbSet<MedicineOnHandStockEntity> MedicineOnHandStock { get; set; }
+        public virtual DbSet<UserHospitalEntity> UserHospital { get; set; }
+        public virtual DbSet<SampleReceiveEntity> SampleReceive { get; set; }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             IConfigurationRoot configuration = new ConfigurationBuilder().SetBasePath(AppDomain.CurrentDomain.BaseDirectory).AddJsonFile("appsettings.json").Build();

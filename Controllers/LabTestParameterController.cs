@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Pinnacle.Entities;
+using Pinnacle.Helpers.JWT;
 using Pinnacle.Models;
 
 namespace Pinnacle.Controllers
@@ -11,6 +12,8 @@ namespace Pinnacle.Controllers
     {
         LabTestParameterModel model = new LabTestParameterModel();
         MasterModel masterModel = new MasterModel();
+        JwtStatus jwtStatus = new JwtStatus();
+
         [HttpPost]
         [Route("SaveLabTestParameters")]
         public IActionResult SaveLabTestParameters(LabTestParametersEntity entity)
@@ -19,7 +22,9 @@ namespace Pinnacle.Controllers
             string token = Request.Headers["Authorization"];
             Ret tokenStatus = masterModel.CheckToken(token);
             Ret accessStatus = masterModel.CheckAceess(true);
-            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? model.SaveLabTestParameters(entity, tokenStatus.data) : accessStatus;
+            jwtStatus = tokenStatus.data;
+            jwtStatus.HospitalId = Convert.ToInt32(Request.Headers["X-Hospital-Id"].ToString());
+            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? model.SaveLabTestParameters(entity, jwtStatus) : accessStatus;
             return Ok(new { status = res.status, IstokenExpired = tokenStatus.IstokenExpired ?? false, message = res.message, data = res.data });
         }
         [HttpPost]
@@ -29,6 +34,8 @@ namespace Pinnacle.Controllers
             string token = Request.Headers["Authorization"];
             Ret tokenStatus = masterModel.CheckToken(token);
             Ret accessStatus = masterModel.CheckAceess(true);
+            jwtStatus = tokenStatus.data;
+            jwtStatus.HospitalId = Convert.ToInt32(Request.Headers["X-Hospital-Id"].ToString());
             Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? model.GetAllLabTestParameters(entity) : accessStatus;
             return Ok(new
             {

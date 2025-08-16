@@ -8,7 +8,7 @@ namespace Pinnacle.Entities
         public int Id { get; set; }
         public string? PatientType { get; set; }
         public string? BillNo { get; set; }
-        public string? BillId { get; set; }
+        public int? BillId { get; set; }
         public int? NoOfBarcodes { get; set; }
         public string? IsUrgent { get; set; }
         public string? TransNo { get; set; }

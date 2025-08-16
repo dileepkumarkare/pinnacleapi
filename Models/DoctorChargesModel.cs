@@ -40,8 +40,8 @@ namespace Pinnacle.Models
                 var _visitDays = db.Hospital.Where(h => h.HospitalId == jwtData.HospitalId).Select(h => h.Visits).FirstOrDefault();
                 if (entity.PaymentBy == "Self")
                 {
-                    var res = db.DoctorCharges.Where(a => a.DoctorId == entity.DoctorId && (a.EffectFrom <= entity.ConsultationDate && a.EffectTo >= entity.ConsultationDate || a.EffectFrom <= entity.ConsultationDate && string.IsNullOrEmpty(a.EffectTo.ToString())))
-                                              .Select(charge => charge.Charge).FirstOrDefault();
+                    var res = db.DoctorCharges.Where(a => a.DoctorId == entity.DoctorId && (a.EffectFrom!=null &&  a.EffectFrom <= entity.ConsultationDate && a.EffectTo >= entity.ConsultationDate || a.EffectFrom <= entity.ConsultationDate && string.IsNullOrEmpty(a.EffectTo.ToString())))
+                                              .Select(charge => charge.Charge).OrderByDescending(op=>op).FirstOrDefault();
                     return new Ret { status = true, message = FetchMessage(res, "Doctor charges"), data = new { doctorList = new[] { new { consultationFee = entity.Visit <= Convert.ToInt32(_visitDays) && entity.Visit > 1 ? 0 : res } } } };
                 }
                 else

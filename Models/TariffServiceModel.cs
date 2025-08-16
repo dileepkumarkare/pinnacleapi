@@ -34,7 +34,7 @@ namespace Pinnacle.Models
                                  ServiceName = c.ServiceCode + " - " + c.ServiceName
                              }
                              ).AsNoTracking();
-                if (!string.IsNullOrEmpty(entity.SearchKey)) query = query.Where(c => c.tariffName.Contains(entity.SearchKey) || c.ServiceName.Contains(entity.SearchKey) || 
+                if (!string.IsNullOrEmpty(entity.SearchKey)) query = query.Where(c => c.tariffName.Contains(entity.SearchKey) || c.ServiceName.Contains(entity.SearchKey) ||
                  c.TariffServiceCode.Contains(entity.SearchKey) || c.TariffServiceName.Contains(entity.SearchKey));
                 var totalCount = query.Count();
                 var res = PaginatedValues(query, entity);
@@ -66,6 +66,7 @@ namespace Pinnacle.Models
             try
             {
                 entity.CreatedBy = jwtData.Id;
+                entity.HospitalId = jwtData.HospitalId;
                 string msg;
 
                 if (entity.Id == 0)

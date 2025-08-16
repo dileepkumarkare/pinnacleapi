@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Pinnacle.Entities;
+using Pinnacle.Helpers.JWT;
 using Pinnacle.Models;
 using Serilog;
 
@@ -11,6 +12,7 @@ namespace Pinnacle.Controllers
     public class OrganizationController : ControllerBase
     {
         OrganizationModel orgModel = new OrganizationModel();
+        JwtStatus jwtStatus = new JwtStatus();
         MasterModel masterModel = new MasterModel();
         private readonly string _ipAddress;
         public OrganizationController(IHttpContextAccessor httpContextAccessor)
@@ -31,7 +33,13 @@ namespace Pinnacle.Controllers
                 string token = Request.Headers["Authorization"];
                 Ret tokenStatus = masterModel.CheckToken(token);
                 Ret accessStatus = masterModel.CheckAceess(true);
-                Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? orgModel.SaveOrganization(entity, tokenStatus.data, _ipAddress) : accessStatus;
+
+                if (tokenStatus.data != null)
+                {
+                    jwtStatus = tokenStatus.data;
+                    jwtStatus.HospitalId = Request.Headers["X-Hospital-Id"].FirstOrDefault() != null ? Convert.ToInt32(Request.Headers["X-Hospital-Id"].FirstOrDefault()) : 0;
+                }
+                Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? orgModel.SaveOrganization(entity, jwtStatus, _ipAddress) : accessStatus;
                 return Ok(new { status = res.status, IstokenExpired = tokenStatus.IstokenExpired ?? false, message = res.message, data = res.data });
             }
             catch (Exception ex)
@@ -48,7 +56,13 @@ namespace Pinnacle.Controllers
             string token = Request.Headers["Authorization"];
             Ret tokenStatus = masterModel.CheckToken(token);
             Ret accessStatus = masterModel.CheckAceess(true);
-            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? orgModel.GetAllOrganization(entity, tokenStatus.data) : accessStatus;
+
+            if (tokenStatus.data != null)
+            {
+                jwtStatus = tokenStatus.data;
+                jwtStatus.HospitalId = Request.Headers["X-Hospital-Id"].FirstOrDefault() != null ? Convert.ToInt32(Request.Headers["X-Hospital-Id"].FirstOrDefault()) : 0;
+            }
+            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? orgModel.GetAllOrganization(entity, jwtStatus) : accessStatus;
             return Ok(new
             {
                 status = res.status,
@@ -65,7 +79,13 @@ namespace Pinnacle.Controllers
             string token = Request.Headers["Authorization"];
             Ret tokenStatus = masterModel.CheckToken(token);
             Ret accessStatus = masterModel.CheckAceess(true);
-            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? orgModel.GetAllOrganizationLabel(obj.Id, tokenStatus.data) : accessStatus;
+
+            if (tokenStatus.data != null)
+            {
+                jwtStatus = tokenStatus.data;
+                jwtStatus.HospitalId = Request.Headers["X-Hospital-Id"].FirstOrDefault() != null ? Convert.ToInt32(Request.Headers["X-Hospital-Id"].FirstOrDefault()) : 0;
+            }
+            Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? orgModel.GetAllOrganizationLabel(obj.Id, jwtStatus) : accessStatus;
             return Ok(new { status = res.status, IstokenExpired = tokenStatus.IstokenExpired ?? false, message = res.message, data = res.data });
         }
         [HttpPost]
@@ -77,7 +97,13 @@ namespace Pinnacle.Controllers
                 string token = Request.Headers["Authorization"];
                 Ret tokenStatus = masterModel.CheckToken(token);
                 Ret accessStatus = masterModel.CheckAceess(true);
-                Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? orgModel.SaveCharges(entity, tokenStatus.data) : accessStatus;
+
+                if (tokenStatus.data != null)
+                {
+                    jwtStatus = tokenStatus.data;
+                    jwtStatus.HospitalId = Request.Headers["X-Hospital-Id"].FirstOrDefault() != null ? Convert.ToInt32(Request.Headers["X-Hospital-Id"].FirstOrDefault()) : 0;
+                }
+                Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? orgModel.SaveCharges(entity, jwtStatus) : accessStatus;
                 return Ok(new { status = res.status, IstokenExpired = tokenStatus.IstokenExpired ?? false, message = res.message, data = res.data });
             }
             catch (Exception ex)
@@ -112,7 +138,13 @@ namespace Pinnacle.Controllers
                 string token = Request.Headers["Authorization"];
                 Ret tokenStatus = masterModel.CheckToken(token);
                 Ret accessStatus = masterModel.CheckAceess(true);
-                Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? orgModel.UpdateDoctorCharge(entity, tokenStatus.data) : accessStatus;
+
+                if (tokenStatus.data != null)
+                {
+                    jwtStatus = tokenStatus.data;
+                    jwtStatus.HospitalId = Request.Headers["X-Hospital-Id"].FirstOrDefault() != null ? Convert.ToInt32(Request.Headers["X-Hospital-Id"].FirstOrDefault()) : 0;
+                }
+                Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? orgModel.UpdateDoctorCharge(entity, jwtStatus) : accessStatus;
                 return Ok(new { status = res.status, IstokenExpired = tokenStatus.IstokenExpired ?? false, message = res.message, data = res.data });
             }
             catch (Exception ex)
@@ -130,7 +162,13 @@ namespace Pinnacle.Controllers
                 string token = Request.Headers["Authorization"];
                 Ret tokenStatus = masterModel.CheckToken(token);
                 Ret accessStatus = masterModel.CheckAceess(true);
-                Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? orgModel.UpdateStatus(entity, tokenStatus.data) : accessStatus;
+
+                if (tokenStatus.data != null)
+                {
+                    jwtStatus = tokenStatus.data;
+                    jwtStatus.HospitalId = Request.Headers["X-Hospital-Id"].FirstOrDefault() != null ? Convert.ToInt32(Request.Headers["X-Hospital-Id"].FirstOrDefault()) : 0;
+                }
+                Ret res = tokenStatus.IstokenExpired == true ? tokenStatus : accessStatus.status ? orgModel.UpdateStatus(entity, jwtStatus) : accessStatus;
                 return Ok(new { status = res.status, IstokenExpired = tokenStatus.IstokenExpired ?? false, message = res.message, data = res.data });
             }
             catch (Exception ex)

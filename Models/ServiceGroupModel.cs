@@ -15,7 +15,7 @@ namespace Pinnacle.Models
 
             try
             {
-                var query = (from a in db.ServiceGroup.Where(a => (entity.Id == 0 || a.ServiceGroupId == entity.Id) && a.HospitalId == jwtData.HospitalId)
+                var query = (from a in db.ServiceGroup.Where(a => (entity.Id == 0 || a.ServiceGroupId == entity.Id))
                              join b in db.LabReportingSettings on a.ServiceGroupId equals b.ServiceGroupId
                              join c in db.Department on a.DepartmentId equals c.DepartmentId
                              select new

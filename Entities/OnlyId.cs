@@ -61,4 +61,9 @@ namespace Pinnacle.Entities
         public int? PatientId { get; set; }
         public int? OrganizationId { get; set; }
     }
+    public class UpdateStatus
+    {
+        public int Id { get; set; }
+        public string IsActive { get; set; }
+    }
 }

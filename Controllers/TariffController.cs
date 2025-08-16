@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Pinnacle.Entities;
+using Pinnacle.Helpers.JWT;
 using Pinnacle.Models;
 
 namespace Pinnacle.Controllers
@@ -11,6 +12,7 @@ namespace Pinnacle.Controllers
     {
         TariffModel model = new TariffModel();
         MasterModel masterModel = new MasterModel();
+        JwtStatus jwtStatus = new JwtStatus();
 
         [HttpPost]
         [Route("SaveTariff")]
@@ -54,5 +56,5 @@ namespace Pinnacle.Controllers
         }
     }
 
-     
-    }
+
+}

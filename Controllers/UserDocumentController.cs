@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Pinnacle.Entities;
+using Pinnacle.Helpers.JWT;
 using Pinnacle.Models;
 
 namespace Pinnacle.Controllers
@@ -11,6 +12,8 @@ namespace Pinnacle.Controllers
     {
         MasterModel masterModel = new MasterModel();
         UserDocumentsModel userDocumentsModel = new UserDocumentsModel();
+        JwtStatus jwtStatus= new JwtStatus();
+
         [HttpPost]
         [Route("SaveUserDocuments")]
         public IActionResult SaveUserDocuments(UserDocUpload entity)
